@@ -1,92 +1,136 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
-  xmlEscape,
-  renderPolygonEntity,
-  renderLinearEntity,
-  renderLabel,
-  composeSVG,
-  type PolygonEntity,
-  type LinearEntity,
-} from "../src/render/svg.js";
-import type { Label } from "../src/schema.js";
+  getTheme,
+  getLineweight,
+  getLinetype,
+  resolveColor,
+} from "../src/render/theme.js";
+import {
+  formatNumber,
+  escapeXml,
+  estimateTextWidth,
+  polygonToSvg,
+  polylineToSvg,
+} from "../src/render/primitives.js";
+import { generateDefs } from "../src/render/defs.js";
 
-// Test 8: renderPolygonEntity generates valid SVG polygon
-test("renderPolygonEntity generates valid SVG polygon", () => {
-  const entity: PolygonEntity = {
-    polygon: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
-    style: { fill: "#ff0000" },
-  };
-  const result = renderPolygonEntity(entity);
+test("render/theme.ts", async (t) => {
+  await t.test("getTheme: blueprint palette", () => {
+    const theme = getTheme("blueprint");
+    assert(theme.background);
+    assert(theme.ink);
+    assert(theme.pochéFill);
+    // Blueprint is blue/light
+  });
 
-  assert(result.includes("<polygon"), "should contain <polygon");
-  assert(result.includes("points="), "should contain points attribute");
-  assert(result.includes("#ff0000"), "should contain fill color");
-  assert(result.includes("/>") || result.includes("</polygon>"), "should be valid XML");
+  await t.test("getTheme: whiteprint palette", () => {
+    const theme = getTheme("whiteprint");
+    assert(theme.background);
+    assert(theme.ink);
+    assert(theme.pochéFill);
+    // Whiteprint is white/black
+  });
+
+  await t.test("getLineweight: converts role to paper-mm", () => {
+    const heavy = getLineweight("heavy", "1:100", "m");
+    const medium = getLineweight("medium", "1:100", "m");
+    const light = getLineweight("light", "1:100", "m");
+
+    assert(heavy > medium, "Heavy should be wider than medium");
+    assert(medium > light, "Medium should be wider than light");
+  });
+
+  await t.test("getLinetype: returns dasharray for dashed/dashdot", () => {
+    const solid = getLinetype("solid", "1:100", "m");
+    const dashed = getLinetype("dashed", "1:100", "m");
+    const dashdot = getLinetype("dashdot", "1:100", "m");
+
+    assert.equal(solid, undefined, "Solid has no dasharray");
+    assert(dashed, "Dashed should have dasharray");
+    assert(dashdot, "Dashdot should have dasharray");
+  });
+
+  await t.test("resolveColor: returns safe colors unchanged", () => {
+    const result = resolveColor("#ffffff", "blueprint");
+    assert.equal(result, "#ffffff");
+  });
+
+  await t.test("resolveColor: falls back to theme ink", () => {
+    const result = resolveColor(undefined, "blueprint");
+    assert(result, "Should return ink color from theme");
+  });
 });
 
-// Test 9: renderLinearEntity buffers and renders
-test("renderLinearEntity buffers and renders", () => {
-  const entity: LinearEntity = {
-    path: [[0, 0], [10, 0]],
-    width: 1,
-    style: { fill: "#00ff00" },
-  };
-  const result = renderLinearEntity(entity);
+test("render/primitives.ts", async (t) => {
+  await t.test("formatNumber: rounds to 4 decimals and strips trailing zeros", () => {
+    const result1 = formatNumber(3.14159);
+    assert(!result1.includes("5159"), "Should round");
 
-  assert(result.includes("<polygon"), "should contain <polygon");
-  assert(typeof result, "string");
-  assert(result.length > 0, "should produce non-empty output");
+    const result2 = formatNumber(1.0);
+    assert.equal(result2, "1", "Should strip .0");
+
+    const result3 = formatNumber(2.5000);
+    assert.equal(result3, "2.5", "Should strip trailing zeros");
+  });
+
+  await t.test("escapeXml: escapes special characters", () => {
+    const result = escapeXml("<tag>&attr=\"value\"</tag>");
+    assert(result.includes("&lt;"));
+    assert(result.includes("&gt;"));
+    assert(result.includes("&amp;"));
+    assert(result.includes("&quot;"));
+  });
+
+  await t.test("escapeXml: leaves safe text unchanged", () => {
+    const result = escapeXml("Hello World 123");
+    assert.equal(result, "Hello World 123");
+  });
+
+  await t.test("estimateTextWidth: monospace estimate", () => {
+    const width1 = estimateTextWidth("x", 10);
+    const width2 = estimateTextWidth("xx", 10);
+
+    assert(width2 > width1, "Longer text should be wider");
+  });
+
+  await t.test("polygonToSvg: generates M/L/Z path", () => {
+    const polygon = [[0, 0], [100, 0], [100, 100], [0, 100]];
+    const result = polygonToSvg(polygon);
+
+    assert(result.startsWith("M"), "Should start with M");
+    assert(result.includes("L"), "Should contain L");
+    assert(result.endsWith("Z"), "Should end with Z");
+  });
+
+  await t.test("polylineToSvg: generates M/L path without Z", () => {
+    const path = [[0, 0], [100, 100], [200, 0]];
+    const result = polylineToSvg(path);
+
+    assert(result.startsWith("M"), "Should start with M");
+    assert(result.includes("L"), "Should contain L");
+    assert(!result.endsWith("Z"), "Should not end with Z");
+  });
 });
 
-// Test 10: xmlEscape escapes special chars
-test("xmlEscape escapes special characters", () => {
-  const input = '&<>"\'';
-  const output = xmlEscape(input);
+test("render/defs.ts", async (t) => {
+  await t.test("generateDefs: returns SVG with <defs> element", () => {
+    const defs = generateDefs("1:100", "m", "blueprint");
 
-  assert.equal(output, "&amp;&lt;&gt;&quot;&#39;");
-});
+    assert(defs.includes("<defs>"));
+    assert(defs.includes("</defs>"));
+  });
 
-// Test 11: renderLabel with text and position
-test("renderLabel with text and position", () => {
-  const label: Label = {
-    text: "Room A",
-    position: [5, 5],
-    size: 12,
-  };
-  const result = renderLabel(label);
+  await t.test("generateDefs: includes material pattern definitions", () => {
+    const defs = generateDefs("1:100", "m", "blueprint");
 
-  assert(result.includes("<text"), "should contain <text");
-  assert(result.includes("Room A"), "should contain label text");
-  assert(result.includes("font-size"), "should contain font-size");
-  assert(result.includes("</text>"), "should be valid XML");
-});
+    // Should include some material patterns
+    assert(defs.includes("pattern"));
+  });
 
-// Test 12: renderLabel escapes text
-test("renderLabel escapes text", () => {
-  const label: Label = {
-    text: "A & B < C",
-    position: [1, 2],
-    size: 10,
-  };
-  const result = renderLabel(label);
+  await t.test("generateDefs: uses patternUnits userSpaceOnUse", () => {
+    const defs = generateDefs("1:100", "m", "blueprint");
 
-  assert(result.includes("A &amp; B &lt; C"), "should escape special chars");
-  assert(!result.includes("A & B <"), "should not contain unescaped chars");
-});
-
-// Test 13: composeSVG creates full SVG document
-test("composeSVG creates full SVG document", () => {
-  const elements = ["<polygon points=\"0,0 10,0 10,10\" />"];
-  const labels = ["<text x=\"5\" y=\"5\" >Room A</text>"];
-  const viewBox = "0 0 100 100";
-
-  const result = composeSVG("#ffffff", elements, labels, viewBox);
-
-  assert(result.includes("<svg"), "should start with <svg");
-  assert(result.includes('viewBox="0 0 100 100"'), "should contain viewBox");
-  assert(result.includes("<polygon"), "should contain elements");
-  assert(result.includes("<text"), "should contain labels");
-  assert(result.includes("</svg>"), "should end with </svg>");
-  assert(result.includes("<rect") && result.includes("fill:#ffffff"), "should have background rect if provided");
+    assert(defs.includes('patternUnits="userSpaceOnUse"'));
+  });
 });
