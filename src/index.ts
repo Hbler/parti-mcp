@@ -2,8 +2,9 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   StdioServerTransport,
 } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { handleRenderCityMap } from "./tools/renderCityMap.js";
+import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { initializeClipper } from "./geometry/clipper.js";
+import { handleRenderSitePlan } from "./tools/renderSitePlan.js";
 import { handleRenderFloorPlan } from "./tools/renderFloorPlan.js";
 
 const server = new Server(
@@ -30,14 +31,14 @@ const tools = [
     },
   },
   {
-    name: "render_city_map",
-    description: "Renders a city map from a MapSpec",
+    name: "render_site_plan",
+    description: "Renders a site plan from a SiteSpec",
     inputSchema: {
       type: "object",
       properties: {
         spec: {
           type: ["object", "string"],
-          description: "MapSpec object or JSON string defining the city map structure",
+          description: "SiteSpec object or JSON string defining the site plan structure",
         },
         outputPath: {
           type: "string",
@@ -87,12 +88,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 
-  if (request.params.name === "render_city_map") {
-    return (await handleRenderCityMap(request.params.arguments || {})) as any;
+  if (request.params.name === "render_site_plan") {
+    return (await handleRenderSitePlan(request.params.arguments || {})) as CallToolResult;
   }
 
   if (request.params.name === "render_floor_plan") {
-    return (await handleRenderFloorPlan(request.params.arguments || {})) as any;
+    return (await handleRenderFloorPlan(request.params.arguments || {})) as CallToolResult;
   }
 
   return {
@@ -103,10 +104,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       },
     ],
     isError: true,
-  } as any;
+  };
 });
 
 async function main() {
+  // Initialize Clipper WASM instance on startup
+  await initializeClipper();
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
