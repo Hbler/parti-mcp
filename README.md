@@ -1,18 +1,53 @@
-# plan-mcp
+# plan-mcp v2
 
-An MCP server for rendering 2D plan-view drawings as SVG. Supports both city-scale maps (blocks, buildings, roads, greenspaces) and building-scale floor plans (rooms, walls, openings).
+An MCP server that renders architectural floor plans and site plans as SVG in a blueprint aesthetic, following real architectural drawing conventions. Built with precision planar geometry (Clipper WASM + flatten-js).
 
-## Quick Start
+## Features
+
+- **Precision geometry engine**: Uses Clipper (js-angusj-clipper) for robust planar geometry operations with integer-precision scaling
+- **Analytical primitives**: flatten-js for centroids, point-along-path, perpendiculars, and arc geometry
+- **Architectural rendering**: Proper wall junctions (offset→union→cut→stroke), door/window symbols, room labels with area calculations
+- **Multi-theme output**: Blueprint (dark) and Whiteprint (light) themes with theme-aware text contrast
+- **Multi-scale support**: Automatic scaling from paper millimeters to model units (1:100, 1:50, 1:200, etc.)
+- **Multi-floor plans**: Render each floor separately or batch process buildings
+- **Site and city plans**: Buildings, parcels, roads, green spaces, water features, barriers, trees, and paved areas
+
+## Architecture
+
+### Core Geometry Pipeline
+
+1. **Input**: FloorPlanSpec or SiteSpec (Zod-validated schemas)
+2. **Geometry Processing**:
+   - Wall/road polylines are offset to solid bands (Clipper)
+   - Overlapping bands are unioned (Clipper with NonZero fill rule)
+   - Junctions are cleaned via offset→union→cut workflow
+   - Interior polygons (rooms/parcels) are extracted
+3. **Rendering**:
+   - Walls/roads/outlines rendered as stroked paths (no fill)
+   - Rooms/buildings rendered as filled polygons with hatch patterns
+   - Openings (doors/windows) cut from walls or drawn as symbols
+   - Text labels positioned at centroids with automatic contrast detection
+   - Title blocks, scale bars, and north arrows added per AIA conventions
+4. **Output**: SVG with embedded patterns, markers, and defs
+
+### Key Files
+
+- **src/geometry/clipper.ts**: Clipper WASM wrapper, offset, union, difference operations
+- **src/geometry/primitives.ts**: flatten-js wrappers for centroids, perpendiculars, point-along-path, polygon area
+- **src/geometry/scale.ts**: paper-mm ↔ model-unit conversion, dimension text formatting, scale-bar tick stops
+- **src/render/theme.ts**: blueprint/whiteprint palettes, lineweight/linetype resolution, contrast-aware text color
+- **src/render/titleblock.ts**: Title block generation with scaled text and backgrounds
+- **src/render/symbols.ts**: Door swing, window glazing, grid bubbles, dimension strings, scale bars, north arrows
+- **src/render/sheet.ts**: Sheet assembly — border, title block, north arrow, scale bar around the drawing content
+- **src/tools/renderFloorPlan.ts**: Floor plan rendering pipeline
+- **src/tools/renderSitePlan.ts**: Site plan rendering pipeline
+
+## Getting Started
 
 ### Installation
 
 ```bash
 npm install
-```
-
-### Building
-
-```bash
 npm run build
 ```
 
@@ -22,442 +57,232 @@ npm run build
 npm test
 ```
 
-### Starting the Server
+Covers:
+- Geometry operations (clipping, offsetting, unions)
+- Schema validation
+- Rendering pipeline
+- Integration tests with real examples
+- Regression tests for known bugs (junction seams, text sizing)
 
-```bash
-npm start
+### Rendering Examples
+
+All examples are in `examples/` directory. Each can be rendered via the CLI tools:
+
+```typescript
+import { handleRenderFloorPlan } from "./src/tools/renderFloorPlan.js";
+import { initializeClipper } from "./src/geometry/clipper.js";
+
+await initializeClipper();
+const spec = JSON.parse(fs.readFileSync("examples/house.json", "utf-8"));
+const result = await handleRenderFloorPlan({ spec });
+console.log(result.content[0].text); // SVG output
 ```
 
-## MCP Client Configuration
+## Example Specifications
 
-To connect an MCP client to this server, configure it with stdio transport:
+### Floor Plan (house.json)
 
-**JSON Configuration (e.g., in Claude settings):**
+Single-floor residential plan:
+- 15m × 10m footprint
+- 2 rooms (living room, kitchen)
+- Interior partition wall
+- Exterior doors/windows
+- Dimension annotations
 
 ```json
 {
-  "mcpServers": {
-    "plan-mcp": {
-      "command": "node",
-      "args": ["/path/to/plan-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-**Alternative (using tsx for development):**
-
-```json
-{
-  "mcpServers": {
-    "plan-mcp": {
-      "command": "tsx",
-      "args": ["/path/to/plan-mcp/src/index.ts"]
-    }
-  }
-}
-```
-
-The server exposes two main tools via the MCP protocol: `render_city_map` and `render_floor_plan`.
-
-## API Overview
-
-### Tool 1: render_city_map
-
-Renders city-scale maps showing blocks, buildings, roads, and greenspaces.
-
-**Inputs:**
-- `spec` (required): MapSpec object or JSON string defining the city layout
-- `outputPath` (optional): File path to save SVG output (relative to `output/` directory)
-
-**Output:**
-- SVG text (if no outputPath specified)
-- Confirmation message with file path (if outputPath provided)
-
-**Example Input (MapSpec):**
-
-```json
-{
-  "units": "meters",
-  "background": "#f5f5f5",
-  "theme": "urban",
-  "blocks": [
-    {
-      "id": "blk1",
-      "zone": "residential",
-      "polygon": [[[0, 0], [200, 0], [200, 200], [0, 200]]]
-    }
-  ],
-  "buildings": [
-    {
-      "id": "bld1",
-      "footprint": [[[20, 20], [80, 20], [80, 80], [20, 80]]],
-      "floorCount": 3,
-      "label": { "text": "Tower A" }
-    }
-  ],
-  "roads": [
-    {
-      "id": "rd1",
-      "path": [[0, 250], [500, 250]],
-      "width": 15,
-      "type": "primary"
-    }
-  ],
-  "greenspaces": [
-    {
-      "id": "park1",
-      "polygon": [[[250, 0], [450, 0], [450, 200], [250, 200]]]
-    }
-  ]
-}
-```
-
-**Example Output:**
-
-```
-SVG document rendered to output/city_map.svg (450px × 400px)
-```
-
-### Tool 2: render_floor_plan
-
-Renders building-scale floor plans for single or multiple floors.
-
-**Inputs:**
-- `spec` (required): FloorPlanSpec object or JSON string defining floor layout
-- `outputPath` (optional): File path to save SVG output (relative to `output/` directory)
-
-**Output:**
-- Single SVG text (for single floor)
-- Array of SVGs (for multi-floor buildings)
-- File path confirmation (if outputPath provided)
-
-**Example Input (FloorPlanSpec):**
-
-```json
-{
-  "units": "meters",
-  "theme": "residential",
+  "unit": "m",
+  "scale": "1:50",
+  "theme": "blueprint",
+  "titleBlock": { /* ... */ },
   "floors": [
     {
+      "id": "ground-floor",
       "level": 0,
-      "outline": [[[0, 0], [300, 0], [300, 200], [0, 200]]],
-      "rooms": [
-        {
-          "id": "living",
-          "roomType": "living_room",
-          "polygon": [[[10, 10], [150, 10], [150, 100], [10, 100]]],
-          "label": { "text": "Living Room" }
-        },
-        {
-          "id": "bed1",
-          "roomType": "bedroom",
-          "polygon": [[[160, 10], [290, 10], [290, 100], [160, 100]]],
-          "label": { "text": "Bedroom 1" }
-        }
-      ],
-      "walls": [
-        {
-          "id": "wall1",
-          "path": [[155, 10], [155, 100]],
-          "thickness": 0.3
-        }
-      ],
-      "openings": [
-        {
-          "id": "door1",
-          "wallId": "wall1",
-          "position": 0.5,
-          "width": 1.0,
-          "type": "door"
-        }
-      ]
+      "outline": [[0, 0], [15, 0], [15, 10], [0, 10]],
+      "walls": [ /* paths with thickness */ ],
+      "rooms": [ /* polygons with labels */ ],
+      "openings": [ /* doors and windows */ ],
+      "dimensions": [ /* annotation lines */ ]
     }
   ]
 }
 ```
 
-**Example Output:**
+### Multi-Floor (two-floor.json)
 
-```
-SVG document rendered to output/floor_plan_L0.svg (300px × 200px)
-```
+Two-story residential:
+- Ground floor: Living Room, Kitchen, Bedroom, Bathroom
+- First floor: Bedrooms, Bathroom, Landing
+- Interior partitions on both levels
+- 15m × 12m per floor
 
-## Entity Reference
+### Site Plan (site-plan.json)
 
-### City Scale (MapSpec)
+Residential site with:
+- Main building footprint
+- Property parcel boundary
+- Street frontage
+- Driveway (asphalt)
+- Sidewalk (concrete)
+- Pool (water feature)
+- Landscaping (lawn, garden)
+- Property fence
+- Site trees with species
 
-The MapSpec root object defines a complete city layout with the following structure:
-
-```typescript
+```json
 {
-  units?: string;           // "meters", "feet", etc.
-  background?: string;      // Background color (hex or named)
-  theme?: string;           // Visual theme: "urban", "suburban", "rural"
-  blocks?: Block[];          // Neighborhood units
-  buildings?: Building[];    // Structures
-  roads?: Road[];            // Transportation network
-  greenspaces?: GreenSpace[];// Parks and vegetation
+  "unit": "m",
+  "scale": "1:100",
+  "buildings": [ /* footprints with labels */ ],
+  "roads": [ /* paths with width */ ],
+  "pavedAreas": [ /* polygons with surface type */ ],
+  "greenSpaces": [ /* polygons with landscape type */ ],
+  "water": [ /* polygons with water type */ ],
+  "barriers": [ /* paths with barrier type */ ],
+  "trees": [ /* positions with radius and species */ ]
 }
 ```
 
-**Entity Types:**
+## CLI Tools
 
-#### Block
-Neighborhood or zoning unit.
-```typescript
-{
-  id: string;               // Unique identifier
-  polygon: [number, number][][]; // Outer ring + holes
-  zone?: string;            // Zone type: "residential", "commercial", etc.
-  style?: Style;            // Fill, stroke, opacity
-}
-```
+### renderFloorPlan
 
-#### Building
-Structure within a block.
-```typescript
-{
-  id: string;               // Unique identifier
-  footprint: [number, number][][]; // Outer ring + holes
-  floorCount?: number;      // Number of floors (1+)
-  height?: number;          // Building height in units
-  label?: Label;            // Text label with optional position
-  style?: Style;            // Fill, stroke, opacity
-}
-```
-
-#### Road
-Transportation network element.
-```typescript
-{
-  id: string;               // Unique identifier
-  path: [number, number][]; // Centerline (2+ points)
-  width: number;            // Road width in units
-  type?: string;            // "primary", "secondary", "local", etc.
-  style?: Style;            // Fill, stroke, opacity
-}
-```
-
-#### GreenSpace
-Park or vegetation area.
-```typescript
-{
-  id: string;               // Unique identifier
-  polygon: [number, number][][]; // Outer ring + holes
-  style?: Style;            // Fill, stroke, opacity
-}
-```
-
-### Building Scale (FloorPlanSpec)
-
-The FloorPlanSpec root object defines one or more building floors with the following structure:
+Renders architectural floor plans with proper junction handling and legend.
 
 ```typescript
-{
-  units?: string;           // "meters", "feet", etc.
-  theme?: string;           // Visual theme: "residential", "commercial", "industrial"
-  floors: Floor[];          // Array of floor levels
-}
+export async function handleRenderFloorPlan(input: {
+  spec: FloorPlanSpec;
+  outputPath?: string;
+}): Promise<ToolResult>;
 ```
 
-**Entity Types:**
+**Input Schema** (FloorPlanSpec):
+- `unit`: "m" | "ft" | "mm"
+- `scale`: "1:50" | "1:100" | "1:200" (etc.)
+- `theme`: "blueprint" | "whiteprint"
+- `titleBlock`: Optional title block metadata
+- `floors[]`: Array of floor specs, each with:
+  - `outline`: Boundary polygon
+  - `walls[]`: Wall polylines with thickness
+  - `rooms[]`: Room polygons with type and optional custom fill
+  - `openings[]`: Doors/windows with position and orientation
+  - `dimensions[]`: Annotation lines with text
 
-#### Floor
-A single building level.
+**Output**: SVG at `outputPath` or returned as text
+
+### renderSitePlan
+
+Renders site plans with buildings, roads, landscape, and utilities.
+
 ```typescript
-{
-  level: number;            // Floor number (0 = ground floor)
-  outline: [number, number][][]; // Outer ring + holes
-  rooms?: Room[];           // Interior spaces
-  walls?: Wall[];           // Interior dividers
-  openings?: Opening[];     // Doors and windows
-  style?: Style;            // Floor background style
-}
+export async function handleRenderSitePlan(input: {
+  spec: SiteSpec;
+  outputPath?: string;
+}): Promise<ToolResult>;
 ```
 
-#### Room
-Interior space within a floor.
-```typescript
-{
-  id: string;               // Unique identifier
-  roomType?: string;        // "bedroom", "kitchen", "bathroom", etc.
-  polygon: [number, number][][]; // Outer ring + holes
-  label?: Label;            // Room name
-  style?: Style;            // Fill, stroke, opacity
-}
+**Input Schema** (SiteSpec):
+- `buildings[]`: Building footprints with labels
+- `roads[]`: Road polylines with width
+- `pavedAreas[]`: Paved polygons (driveways, parking, sidewalks)
+- `greenSpaces[]`: Landscape polygons (lawn, garden, trees)
+- `water[]`: Water features (pools, ponds)
+- `barriers[]`: Fences, walls, hedges
+- `trees[]`: Individual tree positions with radius and species
+
+## Scale and Units
+
+All coordinates are in **model units** (meters, feet, mm depending on spec).
+
+**Scale conversion** is automatic:
+- Input scale string (e.g., "1:100") is parsed
+- SVG font sizes and line widths are scaled appropriately
+- At 1:100 with meters, 0.1 model units = 1cm on paper
+- Text is rendered proportional to drawing size (0.5–3% of bbox height)
+
+**Unit handling**:
+- All internal calculations use model units
+- Title blocks, scale bars adapt to unit and scale
+
+## Theme System
+
+### Blueprint (default)
+- Background: Prussian blue (`#0B3D91`)
+- Ink: Pale cyan (`#E0F2FF`)
+- Poché fill: Darker blue (`#1A4BA8`)
+
+### Whiteprint (opt-in)
+- Background: White (`#FFFFFF`)
+- Ink: Black (`#000000`)
+- Poché fill: Light gray (`#D3D3D3`)
+
+### Per-element fill and label contrast
+Any drawable entity may set `style.fill` to highlight it in a specific color, regardless of theme. Room labels don't just use the theme's `ink` color unconditionally — `getContrastingTextColor` picks whichever of the theme's `ink` or `background` color has the greater luminance distance from the room's actual fill, so a label stays legible whether the room uses the theme default or a custom highlight color, in either theme.
+
+## Technical Details
+
+### Geometry Operations
+
+**Offsetting Walls to Bands**:
+```
+Path (centerline) + thickness → Solid band polygon
 ```
 
-#### Wall
-Interior dividing wall.
-```typescript
-{
-  id: string;               // Unique identifier
-  path: [number, number][]; // Centerline (2+ points)
-  thickness: number;        // Wall thickness in units
-  style?: Style;            // Stroke color/width
-}
+**Junction Handling** (offset→union→cut→stroke), the core fix that makes connected walls/roads read as one drawing instead of overlapping outlines:
+```
+1. Offset every wall/road centerline in a floor/site to its own solid band (OpenButt end type)
+2. Union all bands into one merged polygon (NonZero fill rule — EvenOdd would
+   treat the genuinely-overlapping area at a junction as a hole and split
+   the result back into separate pieces)
+3. Difference the door/window opening cutters from that merged polygon
+4. Stroke the single resulting boundary once — never per-wall
 ```
 
-#### Opening
-Door or window in a wall.
-```typescript
-{
-  id: string;               // Unique identifier
-  wallId: string;           // Reference to parent wall
-  position: number;         // Distance along wall (0.0 - 1.0)
-  width: number;            // Opening width in units
-  type?: string;            // "door", "window", "opening"
-  style?: Style;            // Stroke color for outline
-}
+**Rooms are author-supplied, not derived.** A `Room.polygon` is authored directly in the spec to the room's interior wall face — it is not extracted or computed from the wall geometry. This keeps the computed area (`getPolygonArea`) honest as usable floor area, and means room fill always meets wall poché with no gap as long as the spec author places the room polygon at the wall's inner face. Label position is the room polygon's centroid (`getCentroid`).
+
+### Text Rendering
+
+All text sizing is computed as:
+```
+fontSize (model units) = textSizeInPaperMm * modelPerPaperMm(scale, unit)
+modelPerPaperMm = scaleDenominator / mmPerUnit
 ```
 
-### Common Schemas
+For scale "1:100" with unit "m" (1 m = 1000 mm):
+- modelPerPaperMm = 100 / 1000 = 0.1
+- 1.5mm text → 1.5 * 0.1 = 0.15 model units (15 cm — reads correctly on a drawing sized in metres at 1:100)
 
-#### Style
-Visual appearance.
-```typescript
-{
-  fill?: string;            // Fill color (hex or named)
-  stroke?: string;          // Stroke color
-  strokeWidth?: number;     // Stroke width in pixels (0-100)
-  opacity?: number;         // Opacity (0-100 as percentage)
-}
-```
+This same conversion drives every line weight, tick size, and bubble radius — nothing is a hardcoded pixel/model-unit constant, so output reads correctly whether the spec is a metre-scale floor plan or a much larger site plan.
 
-#### Label
-Text annotation.
-```typescript
-{
-  text: string;             // Label text (1-500 chars)
-  position?: [number, number] | [number, number, number]; // Custom position or offset
-  anchorEntityId?: string;  // Entity ID to anchor to
-  size?: number;            // Font size in pixels (1-500)
-}
-```
+Text is rendered with `font-family="monospace"` for deterministic sizing.
 
-## Examples
+### Patterns and Hatches
 
-Three example files are provided in the `examples/` directory:
+Hatches are defined as SVG `<pattern>` elements (`patternUnits="userSpaceOnUse"`, so density stays scale-correct and continuous across adjacent shapes) in `<defs>` and referenced via `fill="url(#hatch-type)"`:
+- `hatch-brick`: 45° diagonal lines
+- `hatch-masonry`: 45° diagonal lines, coarser than brick
+- `hatch-concrete`: Stipple/dot pattern
+- `hatch-insulation`: Batting pattern
+- `hatch-lawn`: Scattered circles for grass
+- `hatch-pavers`: Grid pattern for paved areas
+- `hatch-earth`: Dense 45° lines for soil
 
-### small-city.json
-A city-scale map with:
-- 3 neighborhood blocks (residential and commercial)
-- 1 central park
-- 5 buildings (ranging from 1-3 floors)
-- 3 roads (primary and local streets)
+## Known Limitations
 
-Run with `render_city_map` tool.
+- All polylines are treated as open paths; closed loops require explicit endpoint
+- Text is positioned at geometric center; complex labels may benefit from manual adjustment
+- Curved walls use straight line segments (no Bezier support yet)
+- High-precision geometry relies on integer arithmetic; very large drawings may lose precision
 
-### small-house.json
-A single-floor residential floor plan with:
-- 5 rooms (living room, kitchen, 2 bedrooms, 1 bathroom)
-- 8 walls dividing the spaces
-- 8 openings (doors and windows)
+## Contributing
 
-Run with `render_floor_plan` tool.
+All code follows TypeScript strict mode. Changes must:
+1. Pass `npm run build` (TypeScript check)
+2. Pass `npm test` (full test suite)
+3. Update relevant tests if schemas or rendering change
+4. For new examples, render and visually verify via headless Chrome
 
-### two-floor-building.json
-A two-floor commercial building with:
-- 8 total rooms (4 per floor)
-- 15 walls across both floors
-- 12 openings (doors for offices and circulation, windows on perimeter)
+## Version History
 
-Run with `render_floor_plan` tool.
-
-### How to Run Examples
-
-1. Load the JSON from `examples/`:
-   ```bash
-   cat examples/small-city.json
-   ```
-
-2. Pass to the appropriate tool:
-   - City maps: `render_city_map` with spec + outputPath
-   - Floor plans: `render_floor_plan` with spec + outputPath
-
-3. Output SVGs are written to the `output/` directory.
-
-## Output
-
-SVG files are rendered to the `output/` directory by default. Each SVG is a standard 2D vector graphic viewable in:
-- Web browsers (any modern browser)
-- Graphic editing tools (Inkscape, Adobe Illustrator, etc.)
-- Image viewers
-
-### Multi-Floor Buildings
-
-Floor plans with multiple floors generate one SVG per floor. Filenames follow the pattern:
-```
-{outputPath}_L{level}.svg
-```
-
-For example, `two-floor-building.json` with `outputPath: "office"` produces:
-- `output/office_L0.svg` (ground floor)
-- `output/office_L1.svg` (first floor)
-
-## Technology Stack
-
-- **TypeScript**: Strongly typed implementation
-- **Zod**: Input validation and schema inference
-- **Turf.js**: Geometry calculations (polygon operations, centroid, area)
-- **MCP SDK**: Model Context Protocol integration
-- **Vitest**: Test framework with 112 passing tests
-
-## Security Notes
-
-- **File write restrictions**: Output files are restricted to the `output/` directory. Path traversal attempts containing `..` are rejected.
-- **SVG escaping**: All user-supplied text is XML-escaped in SVG output to prevent injection attacks.
-- **Input validation**: All specs are validated against Zod schemas before rendering.
-
-## Development
-
-### Project Structure
-
-```
-src/
-  ├── index.ts              # MCP server entry point
-  ├── schema.ts             # Zod schemas for MapSpec and FloorPlanSpec
-  ├── geometry.ts           # Geometry utilities (centroid, area, intersections)
-  ├── render/               # Rendering modules
-  │   ├── renderCityMap.ts
-  │   └── renderFloorPlan.ts
-  └── tools/                # Tool handlers
-      ├── renderCityMap.ts
-      └── renderFloorPlan.ts
-
-test/                        # Test suite (112 tests)
-examples/                    # Example specs
-output/                      # Rendered SVG output
-```
-
-### Building
-
-```bash
-npm run build
-```
-
-Compiles TypeScript to `dist/` for production use.
-
-### Testing
-
-```bash
-npm test
-```
-
-Runs the full test suite (112 tests across 7 test files):
-- `scaffold.test.ts` — Server setup and tool registration
-- `schema.test.ts` — Input validation
-- `geometry.test.ts` — Geometry calculations
-- `render.test.ts` — SVG rendering primitives
-- `renderCityMap.test.ts` — City map rendering
-- `openings.test.ts` — Door/window placement
-- `renderFloorPlan.test.ts` — Floor plan rendering
-
-### Future Improvements
-
-- Isometric or 3D perspective rendering
-- Raster export (PNG, JPEG)
-- Furniture placement and layout
-- Terrain and elevation visualization
-- Pathfinding and routing display
+v2 is a full rebuild of an earlier Turf.js-based prototype: a different geometry engine (Clipper + flatten-js, replacing Turf's geospatial/spherical math, which was the root cause of a geometry bug at wall/road junctions) and a renderer that follows real architectural drawing conventions (blueprint aesthetic, real units + named scale, line-weight hierarchy, poché/material hatching, dimensioning, structural grid, title block, north arrow, scale bar) rather than a generic vector diagram. See `docs/REASONS-CANVAS.md` for the full design history.

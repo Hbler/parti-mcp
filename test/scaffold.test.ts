@@ -123,7 +123,7 @@ test("Can call 'ping' tool via JSON-RPC over stdio", async () => {
   server.kill();
 });
 
-test("Server lists 'render_city_map' tool in tools", async () => {
+test("Server lists 'render_site_plan' tool in tools", async () => {
   const server = startServer();
 
   // Wait for server to start
@@ -169,7 +169,7 @@ test("Server lists 'render_city_map' tool in tools", async () => {
   const toolNames = ((response as any).result?.tools || []).map(
     (tool: any) => tool.name
   );
-  assert(toolNames.includes("render_city_map"), `Expected render_city_map in ${JSON.stringify(toolNames)}`);
+  assert(toolNames.includes("render_site_plan"), `Expected render_site_plan in ${JSON.stringify(toolNames)}`);
 
   server.kill();
 });
@@ -221,6 +221,18 @@ test("Server lists 'render_floor_plan' tool in tools", async () => {
     (tool: any) => tool.name
   );
   assert(toolNames.includes("render_floor_plan"), `Expected render_floor_plan in ${JSON.stringify(toolNames)}`);
+
+  server.kill();
+});
+
+test("Clipper WASM instance initializes on server startup", async () => {
+  const server = startServer();
+
+  // Wait for server to start and initialize Clipper
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Server should still be running (if Clipper init failed, it would crash)
+  assert.equal(server.exitCode, null, "Server should still be running with Clipper initialized");
 
   server.kill();
 });
