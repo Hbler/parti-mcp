@@ -55,7 +55,7 @@ export async function handleRenderCityMap(args: Record<string, unknown>): Promis
     const linearEntities: Array<LinearEntity & { type: string }> = [];
     const labeledEntities: Array<{ entity: PolygonEntity; label: any; centroid?: any }> = [];
 
-    // Render in order: greenspaces, blocks, buildings, roads (painter's algorithm)
+    // Render in order: greenspaces, blocks, roads, buildings (painter's algorithm)
 
     // Greenspaces
     if (spec.greenspaces && spec.greenspaces.length > 0) {
@@ -77,6 +77,18 @@ export async function handleRenderCityMap(args: Record<string, unknown>): Promis
           zone: block.zone,
           polygon: block.polygon as number[][][],
           style: block.style || { fill: zoneColor },
+        });
+      }
+    }
+
+    // Roads (buffer to polygons) — drawn before buildings so buildings sit on top
+    if (spec.roads && spec.roads.length > 0) {
+      for (const road of spec.roads) {
+        const bufferedPolygon = bufferPath(road.path as number[][], road.width);
+        polygonEntities.push({
+          type: "road",
+          polygon: bufferedPolygon,
+          style: road.style || { fill: "#A9A9A9" },
         });
       }
     }
@@ -103,18 +115,6 @@ export async function handleRenderCityMap(args: Record<string, unknown>): Promis
             centroid: getCentroid(building.footprint as number[][][]),
           });
         }
-      }
-    }
-
-    // Roads (buffer to polygons)
-    if (spec.roads && spec.roads.length > 0) {
-      for (const road of spec.roads) {
-        const bufferedPolygon = bufferPath(road.path as number[][], road.width);
-        polygonEntities.push({
-          type: "road",
-          polygon: bufferedPolygon,
-          style: road.style || { fill: "#A9A9A9" },
-        });
       }
     }
 

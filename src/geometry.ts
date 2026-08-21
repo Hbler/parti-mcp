@@ -1,15 +1,16 @@
 import * as turf from "@turf/turf";
+import type { Style } from "./schema.js";
 
 // Export interfaces for use in render and tests
 export interface PolygonEntity {
   polygon: number[][][]; // Coordinates[][]
-  style?: any;
+  style?: Style;
 }
 
 export interface LinearEntity {
   path: number[][]; // Coordinates[]
   width: number;
-  style?: any;
+  style?: Style;
 }
 
 export interface BBox {
@@ -77,48 +78,36 @@ export function computeBbox(
 }
 
 /**
- * Compute SVG viewBox and scale for a bounding box
- * @param bbox Bounding box
- * @param padding Padding in pixels around the bbox
- * @param maxWidth Maximum canvas width
- * @param maxHeight Maximum canvas height
- * @returns ViewBoxResult with viewBox string and scale
+ * Compute the SVG viewBox for a bounding box, in world coordinates.
+ *
+ * The viewBox is the padded world-space bounding box itself
+ * (`minX minY width height`) — geometry is NOT rescaled into a fixed pixel
+ * canvas. The root <svg>'s width/height (100%) let the viewer scale the whole
+ * drawing to fit. This keeps every coordinate in one space (buffer widths,
+ * marker sizes, stroke widths, labels all stay proportional) and guarantees
+ * content with a non-zero origin or negative coordinates stays in-frame.
+ *
+ * @param bbox Bounding box in world units
+ * @param padding Padding in world units around the bbox
+ * @returns ViewBoxResult with the world-space viewBox string and scale (1.0)
  */
 export function computeViewBox(
   bbox: BBox,
-  padding: number = 20,
-  maxWidth: number = 2000,
-  maxHeight: number = 2000
+  padding: number = 20
 ): ViewBoxResult {
-  // Add padding to bbox
   const paddedMinX = bbox.minX - padding;
   const paddedMinY = bbox.minY - padding;
-  const paddedMaxX = bbox.maxX + padding;
-  const paddedMaxY = bbox.maxY + padding;
+  const paddedWidth = bbox.maxX + padding - paddedMinX;
+  const paddedHeight = bbox.maxY + padding - paddedMinY;
 
-  const paddedWidth = paddedMaxX - paddedMinX;
-  const paddedHeight = paddedMaxY - paddedMinY;
-
-  // Avoid division by zero
-  if (paddedWidth === 0 || paddedHeight === 0) {
-    return {
-      viewBox: `0 0 ${maxWidth} ${maxHeight}`,
-      scale: 1.0,
-    };
-  }
-
-  // Compute scale to fit within max dimensions
-  const scaleX = maxWidth / paddedWidth;
-  const scaleY = maxHeight / paddedHeight;
-  const scale = Math.max(1.0, Math.min(scaleX, scaleY));
-
-  // Compute scaled dimensions
-  const scaledWidth = Math.ceil(paddedWidth * scale);
-  const scaledHeight = Math.ceil(paddedHeight * scale);
+  // Guard against a degenerate (zero-area) extent, e.g. a single point with
+  // zero padding, so the viewBox always has positive dimensions.
+  const width = paddedWidth > 0 ? paddedWidth : 1;
+  const height = paddedHeight > 0 ? paddedHeight : 1;
 
   return {
-    viewBox: `0 0 ${scaledWidth} ${scaledHeight}`,
-    scale,
+    viewBox: `${paddedMinX} ${paddedMinY} ${width} ${height}`,
+    scale: 1.0,
   };
 }
 

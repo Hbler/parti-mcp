@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { FloorPlanSpecSchema, type FloorPlanSpec, type Floor } from "../schema.js";
 import { computeBbox, computeViewBox, getCentroid, bufferPath, type PolygonEntity } from "../geometry.js";
 import { renderPolygonEntity, renderLabel, composeSVG, xmlEscape } from "../render/svg.js";
-import { cutWallOpening, type Coordinates } from "../render/openings.js";
+import { cutWallOpenings, type Coordinates } from "../render/openings.js";
 import { validateOutputPath } from "../outputPath.js";
 
 export interface ToolResult {
@@ -63,9 +63,11 @@ export async function handleRenderFloorPlan(args: Record<string, unknown>): Prom
       try {
         fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
+        // Strip any trailing .svg so we don't produce e.g. "plan.svg_L0.svg".
+        const base = outputPath.replace(/\.svg$/i, "");
         // Write each floor to separate file
         for (const { floor, svg } of floorSVGs) {
-          const fileName = `${outputPath}_L${floor.level}.svg`;
+          const fileName = `${base}_L${floor.level}.svg`;
           fs.writeFileSync(fileName, svg, "utf-8");
         }
 
@@ -156,28 +158,42 @@ function renderFloor(floor: Floor, buildingLabel?: string): string {
     }
   }
 
-  // Step 3: Walls (dark gray, buffered)
+  // Step 3: Walls (dark gray, buffered) with openings cut through them
   if (floor.walls && floor.walls.length > 0) {
     for (const wall of floor.walls) {
-      const bufferedPolygon = bufferPath(wall.path, wall.thickness);
-      polygonEntities.push({
-        type: "wall",
-        polygon: bufferedPolygon,
-        style: wall.style || {
-          fill: "#808080",
-          stroke: "#404040",
-          strokeWidth: 1,
-        },
-      });
+      const bufferedPolygon = bufferPath(wall.path, wall.thickness) as Coordinates[][];
+      const wallStyle = wall.style || {
+        fill: "#808080",
+        stroke: "#404040",
+        strokeWidth: 1,
+      };
 
-      // Step 4: Handle openings for this wall
-      if (floor.openings && floor.openings.length > 0) {
-        for (const opening of floor.openings) {
-          if (opening.wallId === wall.id) {
-            const result = cutWallOpening(bufferedPolygon as Coordinates[][], wall.path as Coordinates[], opening, 1);
-            openingMarkers.push(...result.markers);
-          }
+      const wallOpenings = (floor.openings || []).filter(
+        (o) => o.wallId === wall.id
+      );
+
+      if (wallOpenings.length === 0) {
+        polygonEntities.push({
+          type: "wall",
+          polygon: bufferedPolygon,
+          style: wallStyle,
+        });
+      } else {
+        // Cut real gaps; a through-opening can split the wall into multiple
+        // polygons, so render each resulting piece.
+        const result = cutWallOpenings(
+          bufferedPolygon,
+          wall.path as Coordinates[],
+          wallOpenings
+        );
+        for (const poly of result.wallPolygons) {
+          polygonEntities.push({
+            type: "wall",
+            polygon: poly,
+            style: wallStyle,
+          });
         }
+        openingMarkers.push(...result.markers);
       }
     }
   }

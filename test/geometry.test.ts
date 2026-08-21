@@ -33,17 +33,30 @@ test("computeBbox with empty array", () => {
   assert.equal(bbox.maxY, 0);
 });
 
-// Test 3: computeViewBox with default padding
-test("computeViewBox with default padding", () => {
+// Test 3: computeViewBox emits a world-space viewBox (padded world bbox)
+test("computeViewBox emits world-space viewBox", () => {
   const bbox: BBox = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
-  const result = computeViewBox(bbox, 20, 1000, 1000);
+  const result = computeViewBox(bbox, 20);
 
-  // Padded box: -20, -20, 120, 120 (140x140)
-  // scale = min(1000/140, 1000/140) = 1000/140 ≈ 7.14
-  assert(result.viewBox.includes("0 0"));
-  assert(result.scale >= 1.0);
-  assert.equal(typeof result.viewBox, "string");
-  assert.equal(typeof result.scale, "number");
+  // Padded world bbox: minX-20, minY-20, width 140, height 140.
+  // Coordinates are NOT rescaled into a fixed pixel canvas.
+  assert.equal(result.viewBox, "-20 -20 140 140");
+  assert.equal(result.scale, 1.0);
+});
+
+// Test 3b: negative-origin content stays fully in-frame
+test("computeViewBox keeps negative/offset content in-frame", () => {
+  const bbox: BBox = { minX: -50, minY: 200, maxX: 50, maxY: 400 };
+  const result = computeViewBox(bbox, 10);
+
+  // viewBox origin must be <= content min so nothing is clipped off-canvas.
+  const [vx, vy, vw, vh] = result.viewBox.split(" ").map(Number);
+  assert.equal(vx, -60);
+  assert.equal(vy, 190);
+  assert.equal(vw, 120);
+  assert.equal(vh, 220);
+  assert(vx <= bbox.minX && vy <= bbox.minY, "viewBox origin should cover content");
+  assert(vx + vw >= bbox.maxX && vy + vh >= bbox.maxY, "viewBox should cover content extent");
 });
 
 // Test 4: getCentroid of unit square

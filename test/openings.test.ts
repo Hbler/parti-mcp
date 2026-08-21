@@ -5,10 +5,26 @@ import {
   computeWallAngle,
   computePerpendicularOffset,
   cutWallOpening,
+  cutWallOpenings,
   type CutWallResult,
+  type Coordinates,
   type Point,
 } from "../src/render/openings.js";
 import type { Opening } from "../src/schema.js";
+
+// Shoelace area of a single ring (handles closed or open rings).
+function ringArea(ring: number[][]): number {
+  let a = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    a += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  return Math.abs(a) / 2;
+}
+
+// Total area across all resulting wall polygons (outer rings).
+function totalArea(polys: Coordinates[][][]): number {
+  return polys.reduce((sum, poly) => sum + ringArea(poly[0]), 0);
+}
 
 // Test 1: computePointAlongPath at fraction 0
 test("computePointAlongPath at fraction 0", () => {
@@ -76,10 +92,10 @@ test("computePerpendicularOffset at 90° wall, distance 2", () => {
   assert(Math.abs(dy - 0) < 0.01, `Expected dy ≈ 0, got ${dy}`);
 });
 
-// Test 9: cutWallOpening generates door marker
-test("cutWallOpening generates door marker", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
-  const wallPath: [number, number][] = [[0, 0], [10, 0]];
+// Test 9: cutWallOpening cuts a real gap and generates a door marker
+test("cutWallOpening cuts a gap and generates door marker", () => {
+  const wallPolygon: Coordinates[][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
+  const wallPath: Coordinates[] = [[0, 0], [10, 0]];
   const opening: Opening = {
     id: "door1",
     wallId: "wall1",
@@ -87,21 +103,23 @@ test("cutWallOpening generates door marker", () => {
     width: 1,
     type: "door",
   };
-  const result = cutWallOpening(wallPolygon, wallPath, opening, 10);
+  const result = cutWallOpening(wallPolygon, wallPath, opening);
 
   assert(result.markers.length >= 1, "Expected at least 1 marker");
   const markerStr = result.markers[0];
-  assert(
-    markerStr.includes("path") || markerStr.includes("circle"),
-    "Expected door marker to contain 'path' or 'circle'"
-  );
+  assert(markerStr.includes("path"), "Door marker should be a <path>");
   assert(markerStr.includes("<") && markerStr.includes(">"), "Expected valid SVG element");
+
+  // A mid-wall through-gap splits the wall into two polygons.
+  assert.equal(result.wallPolygons.length, 2, "Mid-wall opening should split the wall");
+  // Removed area ≈ width * thickness = 1 * 1 = 1 (original area 10).
+  assert(Math.abs(totalArea(result.wallPolygons) - 9) < 0.01, `Expected ~9, got ${totalArea(result.wallPolygons)}`);
 });
 
-// Test 10: cutWallOpening generates window marker
-test("cutWallOpening generates window marker", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
-  const wallPath: [number, number][] = [[0, 0], [10, 0]];
+// Test 10: cutWallOpening cuts a gap and generates a window marker
+test("cutWallOpening cuts a gap and generates window marker", () => {
+  const wallPolygon: Coordinates[][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
+  const wallPath: Coordinates[] = [[0, 0], [10, 0]];
   const opening: Opening = {
     id: "window1",
     wallId: "wall1",
@@ -109,18 +127,19 @@ test("cutWallOpening generates window marker", () => {
     width: 0.8,
     type: "window",
   };
-  const result = cutWallOpening(wallPolygon, wallPath, opening, 10);
+  const result = cutWallOpening(wallPolygon, wallPath, opening);
 
   assert(result.markers.length >= 1, "Expected at least 1 marker");
-  const markerStr = result.markers[0];
-  assert(markerStr.includes("line"), "Expected window marker to contain 'line' elements");
-  assert(markerStr.includes("<") && markerStr.includes(">"), "Expected valid SVG element");
+  assert(result.markers[0].includes("line"), "Window marker should contain <line> elements");
+
+  assert.equal(result.wallPolygons.length, 2, "Mid-wall window should split the wall");
+  assert(Math.abs(totalArea(result.wallPolygons) - 9.2) < 0.01, `Expected ~9.2, got ${totalArea(result.wallPolygons)}`);
 });
 
 // Test 11: cutWallOpening at start of wall (positionAlongWall=0)
 test("cutWallOpening at start of wall (positionAlongWall=0)", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
-  const wallPath: [number, number][] = [[0, 0], [10, 0]];
+  const wallPolygon: Coordinates[][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
+  const wallPath: Coordinates[] = [[0, 0], [10, 0]];
   const opening: Opening = {
     id: "door1",
     wallId: "wall1",
@@ -128,17 +147,18 @@ test("cutWallOpening at start of wall (positionAlongWall=0)", () => {
     width: 1,
     type: "door",
   };
-  const result = cutWallOpening(wallPolygon, wallPath, opening, 10);
+  const result = cutWallOpening(wallPolygon, wallPath, opening);
 
   assert(result.markers.length >= 1, "Expected at least 1 marker");
-  // Should generate marker at or near start of wall
-  assert.equal(result.wallPolygon.length, wallPolygon.length, "Polygon structure preserved");
+  // Gap at the corner removes ~half the opening width (0.5), leaving one piece.
+  assert.equal(result.wallPolygons.length, 1, "End cut should leave a single piece");
+  assert(Math.abs(totalArea(result.wallPolygons) - 9.5) < 0.01, `Expected ~9.5, got ${totalArea(result.wallPolygons)}`);
 });
 
 // Test 12: cutWallOpening at end of wall (positionAlongWall=1)
 test("cutWallOpening at end of wall (positionAlongWall=1)", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
-  const wallPath: [number, number][] = [[0, 0], [10, 0]];
+  const wallPolygon: Coordinates[][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
+  const wallPath: Coordinates[] = [[0, 0], [10, 0]];
   const opening: Opening = {
     id: "door1",
     wallId: "wall1",
@@ -146,17 +166,17 @@ test("cutWallOpening at end of wall (positionAlongWall=1)", () => {
     width: 1,
     type: "door",
   };
-  const result = cutWallOpening(wallPolygon, wallPath, opening, 10);
+  const result = cutWallOpening(wallPolygon, wallPath, opening);
 
   assert(result.markers.length >= 1, "Expected at least 1 marker");
-  // Should generate marker at or near end of wall
-  assert.equal(result.wallPolygon.length, wallPolygon.length, "Polygon structure preserved");
+  assert.equal(result.wallPolygons.length, 1, "End cut should leave a single piece");
+  assert(Math.abs(totalArea(result.wallPolygons) - 9.5) < 0.01, `Expected ~9.5, got ${totalArea(result.wallPolygons)}`);
 });
 
-// Test 13: Multiple openings on same wall
+// Test 13: Multiple openings on the same wall cut multiple gaps
 test("Multiple openings on same wall", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
-  const wallPath: [number, number][] = [[0, 0], [10, 0]];
+  const wallPolygon: Coordinates[][] = [[[0, 0], [10, 0], [10, 1], [0, 1]]];
+  const wallPath: Coordinates[] = [[0, 0], [10, 0]];
 
   const opening1: Opening = {
     id: "opening1",
@@ -173,20 +193,19 @@ test("Multiple openings on same wall", () => {
     type: "door",
   };
 
-  // For simplified implementation, process each opening separately
-  const result1 = cutWallOpening(wallPolygon, wallPath, opening1, 10);
-  const result2 = cutWallOpening(result1.wallPolygon, wallPath, opening2, 10);
+  const result = cutWallOpenings(wallPolygon, wallPath, [opening1, opening2]);
 
-  // Accumulate markers from both calls
-  const allMarkers = [...result1.markers, ...result2.markers];
-  assert(allMarkers.length >= 2, "Expected at least 2 markers total");
-  assert.equal(result2.wallPolygon.length, wallPolygon.length, "Polygon structure preserved");
+  assert.equal(result.markers.length, 2, "Expected 2 markers");
+  // Two interior gaps split the wall into three pieces.
+  assert.equal(result.wallPolygons.length, 3, "Two interior openings should yield three pieces");
+  // Removed area = 0.8 + 1 = 1.8; remaining = 10 - 1.8 = 8.2.
+  assert(Math.abs(totalArea(result.wallPolygons) - 8.2) < 0.01, `Expected ~8.2, got ${totalArea(result.wallPolygons)}`);
 });
 
-// Test 14: Door marker rotates by wall angle
-test("Door marker rotates by wall angle", () => {
-  const wallPolygon: [number, number][][] = [[[0, 0], [0, 10], [1, 10], [1, 0]]];
-  const wallPath: [number, number][] = [[0, 0], [0, 10]];
+// Test 14: Gap is cut through a vertical wall (angle-aware)
+test("cutWallOpening cuts through a vertical wall", () => {
+  const wallPolygon: Coordinates[][] = [[[0, 0], [0, 10], [1, 10], [1, 0]]];
+  const wallPath: Coordinates[] = [[0, 0], [0, 10]];
   const opening: Opening = {
     id: "door1",
     wallId: "wall1",
@@ -194,9 +213,10 @@ test("Door marker rotates by wall angle", () => {
     width: 1,
     type: "door",
   };
-  const result = cutWallOpening(wallPolygon, wallPath, opening, 10);
+  const result = cutWallOpening(wallPolygon, wallPath, opening);
 
   assert(result.markers.length >= 1, "Expected at least 1 marker");
-  // Verify marker was generated (actual rotation validation would require SVG parsing)
   assert(result.markers[0].includes("<"), "Expected valid SVG marker");
+  assert.equal(result.wallPolygons.length, 2, "Mid-wall opening should split the vertical wall");
+  assert(Math.abs(totalArea(result.wallPolygons) - 9) < 0.01, `Expected ~9, got ${totalArea(result.wallPolygons)}`);
 });

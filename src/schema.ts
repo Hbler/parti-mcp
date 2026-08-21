@@ -23,7 +23,7 @@ export const StyleSchema = z.object({
   opacity: z
     .number()
     .gt(0, "opacity must be > 0")
-    .lt(100, "opacity must be < 100")
+    .lte(1, "opacity must be <= 1")
     .optional(),
 });
 
