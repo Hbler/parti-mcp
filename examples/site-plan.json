@@ -1,0 +1,87 @@
+{
+  "unit": "m",
+  "scale": "1:100",
+  "theme": "blueprint",
+  "titleBlock": {
+    "title": "Residential Site Plan",
+    "drawingNumber": "A-001",
+    "date": "2025-01-21",
+    "project": "Example House",
+    "northAngle": 0
+  },
+  "buildings": [
+    {
+      "id": "main-house",
+      "footprint": [[5, 5], [20, 5], [20, 25], [5, 25]],
+      "label": "Main House",
+      "floors": 1
+    }
+  ],
+  "parcels": [
+    {
+      "id": "lot-1",
+      "polygon": [[0, 0], [30, 0], [30, 40], [0, 40]],
+      "zone": "Residential"
+    }
+  ],
+  "roads": [
+    {
+      "id": "street-main",
+      "path": [[0, 35], [30, 35]],
+      "width": 8,
+      "type": "local"
+    }
+  ],
+  "pavedAreas": [
+    {
+      "id": "driveway",
+      "polygon": [[20, 15], [28, 15], [28, 25], [20, 25]],
+      "surface": "asphalt"
+    },
+    {
+      "id": "sidewalk",
+      "polygon": [[0, 33], [30, 33], [30, 35], [0, 35]],
+      "surface": "concrete"
+    }
+  ],
+  "water": [
+    {
+      "id": "pool",
+      "polygon": [[10, 28], [15, 28], [15, 33], [10, 33]],
+      "waterType": "pool"
+    }
+  ],
+  "greenSpaces": [
+    {
+      "id": "back-lawn",
+      "polygon": [[5, 25], [20, 25], [20, 30], [5, 30]],
+      "landscapeType": "lawn"
+    },
+    {
+      "id": "front-landscape",
+      "polygon": [[5, 0], [20, 0], [20, 5], [5, 5]],
+      "landscapeType": "garden"
+    }
+  ],
+  "barriers": [
+    {
+      "id": "property-fence",
+      "path": [[0, 0], [30, 0], [30, 40], [0, 40], [0, 0]],
+      "barrierType": "fence"
+    }
+  ],
+  "trees": [
+    {
+      "id": "oak-1",
+      "position": [2, 8],
+      "radius": 1.5,
+      "species": "oak"
+    },
+    {
+      "id": "maple-1",
+      "position": [28, 12],
+      "radius": 1.2,
+      "species": "maple"
+    }
+  ]
+}

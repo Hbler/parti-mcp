@@ -1,0 +1,117 @@
+{
+  "unit": "m",
+  "scale": "1:50",
+  "theme": "whiteprint",
+  "titleBlock": {
+    "title": "House - Ground Floor",
+    "drawingNumber": "A-002W",
+    "date": "2025-01-21",
+    "project": "Example House (Whiteprint)",
+    "northAngle": 0
+  },
+  "floors": [
+    {
+      "id": "ground-floor",
+      "level": 0,
+      "label": "Ground Floor",
+      "outline": [[0, 0], [15, 0], [15, 10], [0, 10]],
+      "walls": [
+        {
+          "id": "wall-north",
+          "path": [[0, 0.2], [15, 0.2]],
+          "thickness": 0.4,
+          "material": "brick"
+        },
+        {
+          "id": "wall-south",
+          "path": [[0, 9.8], [15, 9.8]],
+          "thickness": 0.4,
+          "material": "brick"
+        },
+        {
+          "id": "wall-west",
+          "path": [[0.2, 0], [0.2, 10]],
+          "thickness": 0.4,
+          "material": "brick"
+        },
+        {
+          "id": "wall-east",
+          "path": [[14.8, 0], [14.8, 10]],
+          "thickness": 0.4,
+          "material": "brick"
+        },
+        {
+          "id": "wall-interior",
+          "path": [[7.5, 0.2], [7.5, 9.8]],
+          "thickness": 0.3,
+          "material": "concrete"
+        }
+      ],
+      "rooms": [
+        {
+          "id": "living-room",
+          "polygon": [[0.4, 0.4], [7.2, 0.4], [7.2, 9.6], [0.4, 9.6]],
+          "roomType": "living",
+          "label": "Living Room",
+          "style": {
+            "fill": "#F5F5F5"
+          }
+        },
+        {
+          "id": "kitchen",
+          "polygon": [[7.8, 0.4], [14.6, 0.4], [14.6, 9.6], [7.8, 9.6]],
+          "roomType": "kitchen",
+          "label": "Kitchen"
+        }
+      ],
+      "openings": [
+        {
+          "id": "door-entry",
+          "wallId": "wall-west",
+          "positionAlongWall": 0.25,
+          "width": 0.9,
+          "type": "door",
+          "hinge": "start",
+          "swingSide": "right"
+        },
+        {
+          "id": "window-north-1",
+          "wallId": "wall-north",
+          "positionAlongWall": 0.33,
+          "width": 1.2,
+          "type": "window"
+        },
+        {
+          "id": "window-north-2",
+          "wallId": "wall-north",
+          "positionAlongWall": 0.67,
+          "width": 1.2,
+          "type": "window"
+        },
+        {
+          "id": "interior-door",
+          "wallId": "wall-interior",
+          "positionAlongWall": 0.5,
+          "width": 0.8,
+          "type": "door",
+          "hinge": "end",
+          "swingSide": "left"
+        }
+      ],
+      "dimensions": [
+        {
+          "from": [0, 0],
+          "to": [15, 0],
+          "offset": -0.5,
+          "textOverride": "15 m"
+        },
+        {
+          "from": [0, 0],
+          "to": [0, 10],
+          "offset": -0.5,
+          "textOverride": "10 m"
+        }
+      ]
+    }
+  ]
+}
