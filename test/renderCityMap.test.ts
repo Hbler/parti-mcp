@@ -2,6 +2,9 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 import { handleRenderCityMap } from "../src/tools/renderCityMap.js";
 import type { MapSpec } from "../src/schema.js";
 
@@ -122,7 +125,7 @@ test("Valid outputPath creates file", async () => {
   assert(text.includes("written") || text.includes("SVG"), "Should indicate file was written");
 
   // Check that file was created
-  const expectedPath = path.resolve("/Users/hugobler/Coding/plan-mcp", outputPath);
+  const expectedPath = path.resolve(PROJECT_ROOT, outputPath);
   assert(fs.existsSync(expectedPath), `File should be created at ${expectedPath}`);
 
   // Check file contents
@@ -386,7 +389,7 @@ test("Spec as string (JSON) or object both work", async () => {
 // Test 16: Integration - Load small-city.json, validate, render, verify output
 test("Integration: Load small-city.json, validate, render, verify output", async () => {
   // Step 1: Load examples/small-city.json
-  const examplePath = path.resolve("/Users/hugobler/Coding/plan-mcp", "examples/small-city.json");
+  const examplePath = path.resolve(PROJECT_ROOT, "examples/small-city.json");
   assert(fs.existsSync(examplePath), `Example file should exist at ${examplePath}`);
 
   const jsonContent = fs.readFileSync(examplePath, "utf-8");
@@ -410,17 +413,33 @@ test("Integration: Load small-city.json, validate, render, verify output", async
   assert(svg.includes("</svg>"), "SVG should end with </svg> tag");
   assert(svg.includes('xmlns="http://www.w3.org/2000/svg"'), "SVG should have correct namespace");
 
-  // Step 5: Element counts
+  // Step 5: Element counts (3 blocks + 1 park + 5 buildings + 3 roads, all render as <polygon>)
   const polygonMatches = svg.match(/<polygon/g) || [];
-  assert(
-    polygonMatches.length >= 9,
-    `Should have at least 9 polygons (3 blocks + 1 park + 5 buildings), got ${polygonMatches.length}`
+  const expectedPolygons =
+    smallCity.blocks!.length +
+    smallCity.greenspaces!.length +
+    smallCity.buildings!.length +
+    smallCity.roads!.length;
+  assert.equal(
+    polygonMatches.length,
+    expectedPolygons,
+    `Should have exactly ${expectedPolygons} polygons, got ${polygonMatches.length}`
   );
 
   const textMatches = svg.match(/<text/g) || [];
   assert(textMatches.length >= 3, `Should have at least 3 text labels, got ${textMatches.length}`);
 
-  assert(svg.length >= 2000, "SVG should be reasonably large (≥2000 chars with roads rendered)");
+  // Every polygon's points must be finite numbers within the viewBox's order of
+  // magnitude — catches geodesic-buffer-style bugs that emit huge/garbage
+  // coordinates instead of throwing.
+  const pointsAttrs = [...svg.matchAll(/<polygon points="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(pointsAttrs.length, expectedPolygons);
+  for (const pointsAttr of pointsAttrs) {
+    const coords = pointsAttr.trim().split(/\s+/).map((pair) => pair.split(",").map(Number));
+    for (const [x, y] of coords) {
+      assert(Number.isFinite(x) && Number.isFinite(y), `Non-finite polygon coordinate: ${x},${y}`);
+    }
+  }
 
   // Step 6: Geometry sanity check - viewBox
   const viewBoxMatch = svg.match(/viewBox="([^"]+)"/);
@@ -429,6 +448,22 @@ test("Integration: Load small-city.json, validate, render, verify output", async
   const width = parseFloat(viewBoxParts[2]);
   const height = parseFloat(viewBoxParts[3]);
   assert(width > 0 && height > 0, `viewBox dimensions should be positive: ${width}x${height}`);
+
+  // Every rendered coordinate must fall within a generous margin of the
+  // viewBox. A regression to geodesic (lon/lat) buffering instead of planar
+  // buffering produces coordinates orders of magnitude outside the viewBox
+  // while still being individually finite, so the isFinite check above
+  // wouldn't catch it — this bound does.
+  const margin = Math.max(width, height) * 2;
+  for (const pointsAttr of pointsAttrs) {
+    const coords = pointsAttr.trim().split(/\s+/).map((pair) => pair.split(",").map(Number));
+    for (const [x, y] of coords) {
+      assert(
+        x >= -margin && x <= width + margin && y >= -margin && y <= height + margin,
+        `Polygon coordinate ${x},${y} is far outside viewBox 0 0 ${width} ${height}`
+      );
+    }
+  }
 
   // Step 7: Verify specific labels are present
   assert(svg.includes("House A"), "Should contain label 'House A'");

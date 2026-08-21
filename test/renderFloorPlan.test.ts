@@ -2,6 +2,9 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 import { handleRenderFloorPlan } from "../src/tools/renderFloorPlan.js";
 import type { FloorPlanSpec } from "../src/schema.js";
 
@@ -694,8 +697,8 @@ test("Multi-floor with outputPath creates separate files", async () => {
   assert(text.includes("written") || text.includes("building"), "Should indicate files were written");
 
   // Check that files were created
-  const expectedPath0 = path.resolve("/Users/hugobler/Coding/plan-mcp", `${outputPath}_L0.svg`);
-  const expectedPath1 = path.resolve("/Users/hugobler/Coding/plan-mcp", `${outputPath}_L1.svg`);
+  const expectedPath0 = path.resolve(PROJECT_ROOT, `${outputPath}_L0.svg`);
+  const expectedPath1 = path.resolve(PROJECT_ROOT, `${outputPath}_L1.svg`);
 
   // Give a small delay for file system
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -756,7 +759,7 @@ test("Spec as string (JSON) or object both work", async () => {
 // Test 19 (Integration): Load small-house.json, render, verify output
 test("Integration: Load small-house.json, render, verify output", async () => {
   // Step 1: Load examples/small-house.json
-  const examplesDir = path.resolve("/Users/hugobler/Coding/plan-mcp", "examples");
+  const examplesDir = path.resolve(PROJECT_ROOT, "examples");
   const smallHousePath = path.join(examplesDir, "small-house.json");
 
   assert(fs.existsSync(smallHousePath), `small-house.json should exist at ${smallHousePath}`);

@@ -140,33 +140,24 @@ export function bufferPath(
     throw new Error("width must be > 0");
   }
 
-  // Convert centerline to GeoJSON Feature LineString
-  // Turf expects [lon, lat] but we use abstract coordinates
-  // For local coordinate systems, we can use the coordinates as-is
-  const lineFeature = turf.lineString(centerline as any);
-
-  // Buffer the line using Turf
-  // Note: Turf.buffer expects distance in kilometers; for abstract local coords,
-  // we interpret width as degrees (or abstract units)
-  // Convert width to a reasonable scale for Turf (it uses great circle distances)
-  // For a local system, use width directly as distance
-  const buffered = turf.buffer(lineFeature, width, { units: "degrees" });
-
-  if (!buffered || buffered.geometry.type !== "Polygon") {
-    // Fallback: create simple rectangle buffer
-    return createSimpleRectangleBuffer(centerline, width);
-  }
-
-  // Extract the polygon coordinates
-  return buffered.geometry.coordinates;
+  // MapSpec/FloorPlanSpec coordinates are abstract planar units, not
+  // geographic lon/lat (see docs/REASONS-CANVAS.md Approach). turf.buffer
+  // always does geodesic buffering on a sphere regardless of the `units`
+  // option passed, so it is not usable here — it produced wildly distorted
+  // output for local coordinates. Buffer the centerline directly in the
+  // planar coordinate space instead. `width` is the total road/wall width,
+  // so each side is offset by half of it.
+  return planarBuffer(centerline, width / 2);
 }
 
 /**
- * Simple fallback rectangle buffer for a path
+ * Planar (Euclidean) buffer of a polyline: offsets each side of the
+ * centerline perpendicular to its (averaged, at joints) tangent by
+ * `halfWidth`, producing a closed polygon ring.
  */
-function createSimpleRectangleBuffer(
+function planarBuffer(
   centerline: number[][],
-  width: number
+  halfWidth: number
 ): number[][][] {
   if (centerline.length < 2) {
     return [[]];
@@ -187,8 +178,8 @@ function createSimpleRectangleBuffer(
     );
     if (length > 0) {
       const normalized = [
-        (perpendicular[0] / length) * width,
-        (perpendicular[1] / length) * width,
+        (perpendicular[0] / length) * halfWidth,
+        (perpendicular[1] / length) * halfWidth,
       ];
       result.push([p[0] + normalized[0], p[1] + normalized[1]]);
     }
@@ -204,8 +195,8 @@ function createSimpleRectangleBuffer(
     );
     if (length > 0) {
       const normalized = [
-        (-perpendicular[0] / length) * width,
-        (-perpendicular[1] / length) * width,
+        (-perpendicular[0] / length) * halfWidth,
+        (-perpendicular[1] / length) * halfWidth,
       ];
       result.push([p[0] + normalized[0], p[1] + normalized[1]]);
     }
