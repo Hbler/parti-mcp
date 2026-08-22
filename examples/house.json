@@ -72,9 +72,9 @@
         { "id": "front-door", "wallId": "ext-west", "positionAlongWall": 0.3, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "right" },
         { "id": "hall-living-door", "wallId": "hall-top", "positionAlongWall": 0.5, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
         { "id": "kitchen-door", "wallId": "kitchen-div", "positionAlongWall": 0.22, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "bed1-door", "wallId": "hall-bottom", "positionAlongWall": 0.18, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "bath-door", "wallId": "hall-bottom", "positionAlongWall": 0.44, "width": 0.7, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "bed2-door", "wallId": "hall-bottom", "positionAlongWall": 0.72, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bed1-door", "wallId": "hall-bottom", "positionAlongWall": 0.2, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bath-door", "wallId": "hall-bottom", "positionAlongWall": 0.56, "width": 0.7, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bed2-door", "wallId": "hall-bottom", "positionAlongWall": 0.84, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
 
         { "id": "living-win-n", "wallId": "ext-north", "positionAlongWall": 0.32, "width": 1.4, "type": "window" },
         { "id": "kitchen-win-n", "wallId": "ext-north", "positionAlongWall": 0.82, "width": 1.4, "type": "window" },
