@@ -176,6 +176,11 @@
           "to": [15, 11.8],
           "bubbleEnds": "start"
         }
+      ],
+      "columns": [
+        { "id": "col-b1", "position": [7.5, 0.2], "shape": "square", "size": 0.4, "material": "concrete" },
+        { "id": "col-b2", "position": [7.5, 6], "shape": "square", "size": 0.4, "material": "concrete" },
+        { "id": "col-b3", "position": [7.5, 11.8], "shape": "square", "size": 0.4, "material": "concrete" }
       ]
     },
     {
