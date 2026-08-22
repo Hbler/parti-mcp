@@ -14,294 +14,145 @@
       "id": "ground-floor",
       "level": 0,
       "label": "Ground Floor",
-      "outline": [[0, 0], [15, 0], [15, 12], [0, 12]],
+      "outline": [[0, 0], [10, 0], [10, 9], [0, 9]],
       "walls": [
-        {
-          "id": "wall-north",
-          "path": [[0, 0.2], [15, 0.2]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-south",
-          "path": [[0, 11.8], [15, 11.8]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-west",
-          "path": [[0.2, 0], [0.2, 12]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-east",
-          "path": [[14.8, 0], [14.8, 12]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-interior-1",
-          "path": [[7.5, 0.2], [7.5, 11.8]],
-          "thickness": 0.3,
-          "material": "concrete"
-        },
-        {
-          "id": "wall-interior-2",
-          "path": [[0.2, 6], [14.8, 6]],
-          "thickness": 0.3,
-          "material": "concrete"
-        }
+        { "id": "ext-north", "path": [[0, 0.15], [10, 0.15]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-south", "path": [[0, 8.85], [10, 8.85]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-west", "path": [[0.15, 0], [0.15, 9]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-east", "path": [[9.85, 0], [9.85, 9]], "thickness": 0.3, "material": "brick" },
+
+        { "id": "g-living-kitchen", "path": [[0.15, 4.5], [6.0, 4.5]], "thickness": 0.15, "material": "concrete" },
+        { "id": "g-hall-west", "path": [[6.0, 0.15], [6.0, 8.85]], "thickness": 0.15, "material": "concrete" },
+        { "id": "g-wc", "path": [[6.0, 6.0], [9.85, 6.0]], "thickness": 0.15, "material": "concrete" }
       ],
       "rooms": [
         {
-          "id": "living-room",
-          "polygon": [[0.4, 0.4], [7.2, 0.4], [7.2, 5.8], [0.4, 5.8]],
+          "id": "g-living",
+          "polygon": [[0.3, 0.3], [5.85, 0.3], [5.85, 4.425], [0.3, 4.425]],
           "roomType": "living",
           "label": "Living Room",
-          "style": {
-            "fill": "#E8F4F8"
-          }
+          "style": { "fill": "#E8F4F8" }
         },
         {
-          "id": "kitchen",
-          "polygon": [[7.8, 0.4], [14.6, 0.4], [14.6, 5.8], [7.8, 5.8]],
+          "id": "g-kitchen",
+          "polygon": [[0.3, 4.575], [5.85, 4.575], [5.85, 8.7], [0.3, 8.7]],
           "roomType": "kitchen",
-          "label": "Kitchen"
+          "label": "Kitchen / Dining"
         },
         {
-          "id": "bedroom-1",
-          "polygon": [[0.4, 6.2], [7.2, 6.2], [7.2, 11.6], [0.4, 11.6]],
-          "roomType": "bedroom",
-          "label": "Bedroom 1"
+          "id": "g-hall",
+          "polygon": [[6.15, 0.3], [9.7, 0.3], [9.7, 5.925], [6.15, 5.925]],
+          "roomType": "hallway",
+          "label": "Entry Hall"
         },
         {
-          "id": "bathroom",
-          "polygon": [[7.8, 6.2], [14.6, 6.2], [14.6, 11.6], [7.8, 11.6]],
+          "id": "g-wc",
+          "polygon": [[6.15, 6.075], [9.7, 6.075], [9.7, 8.7], [6.15, 8.7]],
           "roomType": "bathroom",
-          "label": "Bathroom"
+          "label": "WC"
         }
       ],
       "openings": [
-        {
-          "id": "door-entry",
-          "wallId": "wall-west",
-          "positionAlongWall": 0.25,
-          "width": 0.9,
-          "type": "door",
-          "hinge": "start",
-          "swingSide": "right"
-        },
-        {
-          "id": "window-north-1",
-          "wallId": "wall-north",
-          "positionAlongWall": 0.25,
-          "width": 1.2,
-          "type": "window"
-        },
-        {
-          "id": "window-north-2",
-          "wallId": "wall-north",
-          "positionAlongWall": 0.75,
-          "width": 1.2,
-          "type": "window"
-        },
-        {
-          "id": "interior-door-1",
-          "wallId": "wall-interior-1",
-          "positionAlongWall": 0.3,
-          "width": 0.8,
-          "type": "door",
-          "hinge": "end",
-          "swingSide": "left"
-        },
-        {
-          "id": "interior-door-2",
-          "wallId": "wall-interior-1",
-          "positionAlongWall": 0.7,
-          "width": 0.8,
-          "type": "door",
-          "hinge": "start",
-          "swingSide": "right"
-        }
+        { "id": "g-front", "wallId": "ext-east", "positionAlongWall": 0.3, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "g-living-door", "wallId": "g-hall-west", "positionAlongWall": 0.25, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "g-kitchen-door", "wallId": "g-hall-west", "positionAlongWall": 0.62, "width": 0.9, "type": "door", "hinge": "end", "swingSide": "right" },
+        { "id": "g-wc-door", "wallId": "g-wc", "positionAlongWall": 0.35, "width": 0.7, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "g-living-win-n", "wallId": "ext-north", "positionAlongWall": 0.28, "width": 1.6, "type": "window" },
+        { "id": "g-living-win-w", "wallId": "ext-west", "positionAlongWall": 0.25, "width": 1.4, "type": "window" },
+        { "id": "g-kitchen-win-w", "wallId": "ext-west", "positionAlongWall": 0.72, "width": 1.4, "type": "window" },
+        { "id": "g-kitchen-win-s", "wallId": "ext-south", "positionAlongWall": 0.3, "width": 1.4, "type": "window" }
       ],
-      "dimensions": [
+      "stairs": [
         {
-          "from": [0, 0],
-          "to": [15, 0],
-          "offset": -0.5,
-          "textOverride": "15 m"
-        },
-        {
-          "from": [0, 0],
-          "to": [0, 12],
-          "offset": -0.5,
-          "textOverride": "12 m"
-        }
-      ],
-      "gridLines": [
-        {
-          "label": "A",
-          "from": [0.2, -1.5],
-          "to": [0.2, 12],
-          "bubbleEnds": "start"
-        },
-        {
-          "label": "B",
-          "from": [7.5, -1.5],
-          "to": [7.5, 12],
-          "bubbleEnds": "start"
-        },
-        {
-          "label": "C",
-          "from": [14.8, -1.5],
-          "to": [14.8, 12],
-          "bubbleEnds": "start"
-        },
-        {
-          "label": "1",
-          "from": [-1.5, 0.2],
-          "to": [15, 0.2],
-          "bubbleEnds": "start"
-        },
-        {
-          "label": "2",
-          "from": [-1.5, 6],
-          "to": [15, 6],
-          "bubbleEnds": "start"
-        },
-        {
-          "label": "3",
-          "from": [-1.5, 11.8],
-          "to": [15, 11.8],
-          "bubbleEnds": "start"
+          "id": "g-stair",
+          "footprint": [[6.4, 3.5], [9.4, 3.5], [9.4, 5.7], [6.4, 5.7]],
+          "run": [[6.6, 4.6], [9.2, 4.6]],
+          "treads": 13,
+          "direction": "up"
         }
       ],
       "columns": [
-        { "id": "col-b1", "position": [7.5, 0.2], "shape": "square", "size": 0.4, "material": "concrete" },
-        { "id": "col-b2", "position": [7.5, 6], "shape": "square", "size": 0.4, "material": "concrete" },
-        { "id": "col-b3", "position": [7.5, 11.8], "shape": "square", "size": 0.4, "material": "concrete" }
+        { "id": "g-col-1", "position": [6.0, 0.15], "shape": "square", "size": 0.3, "material": "concrete" },
+        { "id": "g-col-2", "position": [6.0, 8.85], "shape": "square", "size": 0.3, "material": "concrete" }
+      ],
+      "dimensions": [
+        { "from": [0, 0], "to": [10, 0], "offset": -0.8, "textOverride": "10.00 m" },
+        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
+      ],
+      "gridLines": [
+        { "label": "A", "from": [0.15, -1.4], "to": [0.15, 9], "bubbleEnds": "start" },
+        { "label": "B", "from": [6.0, -1.4], "to": [6.0, 9], "bubbleEnds": "start" },
+        { "label": "C", "from": [9.85, -1.4], "to": [9.85, 9], "bubbleEnds": "start" }
       ]
     },
     {
       "id": "first-floor",
       "level": 1,
       "label": "First Floor",
-      "outline": [[0, 0], [15, 0], [15, 12], [0, 12]],
+      "outline": [[0, 0], [10, 0], [10, 9], [0, 9]],
       "walls": [
-        {
-          "id": "wall-north",
-          "path": [[0, 0.2], [15, 0.2]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-south",
-          "path": [[0, 11.8], [15, 11.8]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-west",
-          "path": [[0.2, 0], [0.2, 12]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-east",
-          "path": [[14.8, 0], [14.8, 12]],
-          "thickness": 0.4,
-          "material": "brick"
-        },
-        {
-          "id": "wall-interior-1",
-          "path": [[7.5, 0.2], [7.5, 11.8]],
-          "thickness": 0.3,
-          "material": "concrete"
-        },
-        {
-          "id": "wall-interior-2",
-          "path": [[0.2, 6], [14.8, 6]],
-          "thickness": 0.3,
-          "material": "concrete"
-        }
+        { "id": "ext-north", "path": [[0, 0.15], [10, 0.15]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-south", "path": [[0, 8.85], [10, 8.85]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-west", "path": [[0.15, 0], [0.15, 9]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-east", "path": [[9.85, 0], [9.85, 9]], "thickness": 0.3, "material": "brick" },
+
+        { "id": "f-hall-west", "path": [[6.0, 0.15], [6.0, 8.85]], "thickness": 0.15, "material": "concrete" },
+        { "id": "f-bed-div", "path": [[0.15, 4.5], [6.0, 4.5]], "thickness": 0.15, "material": "concrete" },
+        { "id": "f-bath-div", "path": [[6.0, 6.0], [9.85, 6.0]], "thickness": 0.15, "material": "concrete" }
       ],
       "rooms": [
         {
-          "id": "bedroom-2",
-          "polygon": [[0.4, 0.4], [7.2, 0.4], [7.2, 5.8], [0.4, 5.8]],
+          "id": "f-bed-1",
+          "polygon": [[0.3, 0.3], [5.85, 0.3], [5.85, 4.425], [0.3, 4.425]],
           "roomType": "bedroom",
-          "label": "Bedroom 2",
-          "style": {
-            "fill": "#E8F4F8"
-          }
+          "label": "Master Bedroom",
+          "style": { "fill": "#E8F4F8" }
         },
         {
-          "id": "bedroom-3",
-          "polygon": [[7.8, 0.4], [14.6, 0.4], [14.6, 5.8], [7.8, 5.8]],
+          "id": "f-bed-2",
+          "polygon": [[0.3, 4.575], [5.85, 4.575], [5.85, 8.7], [0.3, 8.7]],
           "roomType": "bedroom",
-          "label": "Bedroom 3"
+          "label": "Bedroom 2"
         },
         {
-          "id": "bathroom-2",
-          "polygon": [[0.4, 6.2], [7.2, 6.2], [7.2, 11.6], [0.4, 11.6]],
-          "roomType": "bathroom",
-          "label": "Bathroom 2"
-        },
-        {
-          "id": "landing",
-          "polygon": [[7.8, 6.2], [14.6, 6.2], [14.6, 11.6], [7.8, 11.6]],
+          "id": "f-landing",
+          "polygon": [[6.15, 0.3], [9.7, 0.3], [9.7, 5.925], [6.15, 5.925]],
           "roomType": "circulation",
           "label": "Landing"
+        },
+        {
+          "id": "f-bath",
+          "polygon": [[6.15, 6.075], [9.7, 6.075], [9.7, 8.7], [6.15, 8.7]],
+          "roomType": "bathroom",
+          "label": "Bathroom"
         }
       ],
       "openings": [
+        { "id": "f-bed1-door", "wallId": "f-hall-west", "positionAlongWall": 0.25, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "f-bed2-door", "wallId": "f-hall-west", "positionAlongWall": 0.62, "width": 0.9, "type": "door", "hinge": "end", "swingSide": "right" },
+        { "id": "f-bath-door", "wallId": "f-bath-div", "positionAlongWall": 0.35, "width": 0.7, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "f-bed1-win-n", "wallId": "ext-north", "positionAlongWall": 0.28, "width": 1.6, "type": "window" },
+        { "id": "f-bed1-win-w", "wallId": "ext-west", "positionAlongWall": 0.25, "width": 1.4, "type": "window" },
+        { "id": "f-bed2-win-w", "wallId": "ext-west", "positionAlongWall": 0.72, "width": 1.4, "type": "window" },
+        { "id": "f-bed2-win-s", "wallId": "ext-south", "positionAlongWall": 0.3, "width": 1.4, "type": "window" },
+        { "id": "f-bath-win-e", "wallId": "ext-east", "positionAlongWall": 0.82, "width": 0.8, "type": "window" }
+      ],
+      "stairs": [
         {
-          "id": "window-north-1",
-          "wallId": "wall-north",
-          "positionAlongWall": 0.25,
-          "width": 1.2,
-          "type": "window"
-        },
-        {
-          "id": "window-north-2",
-          "wallId": "wall-north",
-          "positionAlongWall": 0.75,
-          "width": 1.2,
-          "type": "window"
-        },
-        {
-          "id": "interior-door-1",
-          "wallId": "wall-interior-1",
-          "positionAlongWall": 0.3,
-          "width": 0.8,
-          "type": "door",
-          "hinge": "end",
-          "swingSide": "left"
-        },
-        {
-          "id": "interior-door-2",
-          "wallId": "wall-interior-1",
-          "positionAlongWall": 0.7,
-          "width": 0.8,
-          "type": "door",
-          "hinge": "start",
-          "swingSide": "right"
+          "id": "f-stair",
+          "footprint": [[6.4, 3.5], [9.4, 3.5], [9.4, 5.7], [6.4, 5.7]],
+          "run": [[6.6, 4.6], [9.2, 4.6]],
+          "treads": 13,
+          "direction": "down"
         }
       ],
+      "columns": [
+        { "id": "f-col-1", "position": [6.0, 0.15], "shape": "square", "size": 0.3, "material": "concrete" },
+        { "id": "f-col-2", "position": [6.0, 8.85], "shape": "square", "size": 0.3, "material": "concrete" }
+      ],
       "dimensions": [
-        {
-          "from": [0, 0],
-          "to": [15, 0],
-          "offset": -0.5,
-          "textOverride": "15 m"
-        },
-        {
-          "from": [0, 0],
-          "to": [0, 12],
-          "offset": -0.5,
-          "textOverride": "12 m"
-        }
+        { "from": [0, 0], "to": [10, 0], "offset": -0.8, "textOverride": "10.00 m" },
+        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
       ]
     }
   ]

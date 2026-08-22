@@ -3,10 +3,10 @@
   "scale": "1:50",
   "theme": "blueprint",
   "titleBlock": {
-    "title": "Curved Wall + Column",
+    "title": "Living Room with Bay Window",
     "drawingNumber": "A-005",
     "date": "2025-01-21",
-    "project": "Feature Demo",
+    "project": "Curved-Wall Feature Demo",
     "northAngle": 0
   },
   "floors": [
@@ -14,33 +14,34 @@
       "id": "floor-plan",
       "level": 0,
       "label": "Floor Plan",
-      "outline": [[0, 0], [8, 0], [8, 6], [0, 6]],
+      "outline": [[0, 0], [7, 0], [7, 5.5], [0, 5.5]],
       "walls": [
-        { "id": "w-south", "path": [[0, 5.85], [8, 5.85]], "thickness": 0.3, "material": "brick" },
-        { "id": "w-west", "path": [[0.15, 0.5], [0.15, 5.85]], "thickness": 0.3, "material": "brick" },
-        { "id": "w-east", "path": [[7.85, 0.5], [7.85, 5.85]], "thickness": 0.3, "material": "brick" },
+        { "id": "w-south", "path": [[0, 5.35], [7, 5.35]], "thickness": 0.3, "material": "brick" },
+        { "id": "w-west", "path": [[0.15, 1.0], [0.15, 5.35]], "thickness": 0.3, "material": "brick" },
+        { "id": "w-east", "path": [[6.85, 1.0], [6.85, 5.35]], "thickness": 0.3, "material": "brick" },
         {
           "id": "w-bay",
-          "path": [[0.15, 0.5], [7.85, 0.5]],
+          "path": [[0.15, 1.0], [6.85, 1.0]],
           "thickness": 0.3,
           "material": "brick",
-          "curve": { "radius": 5.5, "clockwise": true }
+          "curve": { "radius": 9.0, "clockwise": false }
         }
       ],
       "rooms": [
         {
-          "id": "hall",
-          "polygon": [[0.3, 0.65], [7.7, 0.65], [7.7, 5.7], [0.3, 5.7]],
+          "id": "living",
+          "polygon": [[0.3, 1.15], [6.7, 1.15], [6.7, 5.2], [0.3, 5.2]],
           "roomType": "living",
-          "label": "Rotunda",
+          "label": "Living Room",
           "style": { "fill": "#E8F4F8" }
         }
       ],
       "openings": [
-        { "id": "door", "wallId": "w-south", "positionAlongWall": 0.5, "width": 1.2, "type": "door", "hinge": "start", "swingSide": "left" }
-      ],
-      "columns": [
-        { "id": "c-center", "position": [4, 3], "shape": "round", "size": 0.6, "material": "concrete" }
+        { "id": "front-door", "wallId": "w-south", "positionAlongWall": 0.5, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "bay-win-1", "wallId": "w-bay", "positionAlongWall": 0.32, "width": 1.2, "type": "window" },
+        { "id": "bay-win-2", "wallId": "w-bay", "positionAlongWall": 0.5, "width": 1.2, "type": "window" },
+        { "id": "bay-win-3", "wallId": "w-bay", "positionAlongWall": 0.68, "width": 1.2, "type": "window" },
+        { "id": "side-win", "wallId": "w-east", "positionAlongWall": 0.5, "width": 1.2, "type": "window" }
       ]
     }
   ]
