@@ -11,16 +11,18 @@ import {
   differencePolygons,
   type Polygon,
 } from "../geometry/clipper.js";
-import { getBbox } from "../geometry/primitives.js";
+import { getBbox, getCentroid } from "../geometry/primitives.js";
+import { modelPerPaperMm } from "../geometry/scale.js";
 import { createLayerGroup } from "../render/layers.js";
 import {
   polygonToSvg,
   polylineToSvg,
   pathToSvg,
   circleToSvg,
+  textToSvg,
   formatNumber,
 } from "../render/primitives.js";
-import { getTheme, getLineweight, resolveColor } from "../render/theme.js";
+import { getTheme, getLineweight, resolveColor, getContrastingTextColor } from "../render/theme.js";
 import { getMaterialPatternId } from "../render/defs.js";
 import { renderScaleBar, renderBarrier } from "../render/symbols.js";
 import { generateSheet } from "../render/sheet.js";
@@ -85,6 +87,9 @@ function renderSitePlan(spec: SiteSpec): string {
   const clipper = getClipper();
   const theme = spec.theme || "blueprint";
   const palette = getTheme(theme);
+  const mpmm = modelPerPaperMm(spec.scale, spec.unit);
+  // Site labels are authored in paper-mm like all annotation; 3mm reads well.
+  const labelSize = 3 * mpmm;
 
   const layers: Record<string, string[]> = {
     "V-PROP": [],
@@ -146,6 +151,13 @@ function renderSitePlan(spec: SiteSpec): string {
         getLineweight("heavy", spec.scale, spec.unit)
       );
       layers["A-BLDG"].push(svg);
+
+      if (building.label) {
+        const [cx, cy] = getCentroid(building.footprint);
+        layers["A-ANNO-TEXT"].push(
+          textToSvg(building.label, cx, cy, labelSize, getContrastingTextColor(fill, theme), "middle")
+        );
+      }
     }
   }
 
@@ -185,6 +197,13 @@ function renderSitePlan(spec: SiteSpec): string {
       );
       layers["L-HARD"].push(svg);
 
+      if (paved.surface) {
+        const [cx, cy] = getCentroid(paved.polygon);
+        layers["A-ANNO-TEXT"].push(
+          textToSvg(titleCase(paved.surface), cx, cy, labelSize, palette.ink, "middle")
+        );
+      }
+
       // Render markings (parking stalls, crosswalks, etc.)
       if (paved.markings && paved.markings.length > 0) {
         for (const marking of paved.markings) {
@@ -215,6 +234,13 @@ function renderSitePlan(spec: SiteSpec): string {
         getLineweight("medium", spec.scale, spec.unit)
       );
       layers["L-WATR"].push(svg);
+
+      if (waterFeature.waterType) {
+        const [cx, cy] = getCentroid(waterFeature.polygon);
+        layers["A-ANNO-TEXT"].push(
+          textToSvg(titleCase(waterFeature.waterType), cx, cy, labelSize, palette.ink, "middle")
+        );
+      }
     }
   }
 
@@ -235,6 +261,13 @@ function renderSitePlan(spec: SiteSpec): string {
         getLineweight("light", spec.scale, spec.unit)
       );
       layers["L-PLNT"].push(svg);
+
+      if (green.landscapeType) {
+        const [gcx, gcy] = getCentroid(green.polygon);
+        layers["A-ANNO-TEXT"].push(
+          textToSvg(titleCase(green.landscapeType), gcx, gcy, labelSize, palette.ink, "middle")
+        );
+      }
     }
   }
 
@@ -317,6 +350,10 @@ function renderSitePlan(spec: SiteSpec): string {
 
   // Generate complete sheet with proper layout, title block, north arrow, scale bar
   return generateSheet(svgContent, bbox, meta, theme);
+}
+
+function titleCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function createError(message: string): ToolResult {
