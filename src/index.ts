@@ -47,12 +47,13 @@ const INSTRUCTIONS = `plan-mcp renders 2D architectural drawings as SVG from str
 Conventions (author the spec to these):
 - Coordinates are 2D [x, y] in the spec's declared real unit (mm|cm|m|ft|in). Axes are SVG-native: origin top-left, +x right, +y DOWN. No y-flip.
 - scale is a named paper scale "1:N". Annotation sizes (text, ticks, line weights) are authored in paper-mm and converted by the server; you supply real-unit geometry.
-- Rooms are polygons authored to the interior wall face (honest floor area). Walls are centerlines + thickness; the server offsets/unions them into cut poché. Openings reference a wall by wallId and sit at positionAlongWall in [0,1]; doors need hinge (start|end) + swingSide (left|right).
+- Rooms are polygons authored to the interior wall face (honest floor area). Walls are centerlines + thickness; the server offsets/unions them into cut poché. A wall's heightClass is "full" (default, solid poché) or "low" (half/pony/knee wall or railing, below the cut plane → drawn as a dashed outline, no fill). Openings reference a wall by wallId and sit at positionAlongWall in [0,1]; doors need hinge (start|end) + swingSide (left|right).
+- Stairs (straight run): give footprint, run [bottom, top] travel centerline, treads count, and direction (up|down). Rendered as tread lines + an UP/DN direction arrow + a diagonal break line (treads beyond the cut are dashed). Ladders: give path [start, end] + width; rendered as two rails + rungs.
 - Per-element style.fill (a safe color token) highlights an element. material picks a hatch (concrete, brick, masonry, insulation, earth, wood).
 
 The server renders exactly what the spec describes — it does NOT infer, correct, or complete the design. You (the caller) own coherence: rooms must tile the floor without unintended overlaps/gaps, wall centerlines must meet at corners to enclose, doors must sit on the wall separating the spaces they join, and every room a person should reach must be reachable from an entrance through connected doors. There is NO wayfinding/reachability check; an incoherent plan renders as given. Intentional exceptions (walk-through closet, open plan) are fine.
 
-Capability boundary: plans are a 2D cut with a walls+rooms+openings vocabulary and NO vertical dimension. Not supported: stairs/ladders, half-walls/railings (render as full walls), isolated columns/piers, curved/arched walls, furniture/fixtures. Mixed wall materials on one floor ARE supported (rendered per material group).
+Capability boundary: plans are a 2D cut with a walls+rooms+openings+stairs+ladders vocabulary and NO continuous vertical model (only a full-vs-below-cut distinction via wall heightClass). Not supported: isolated columns/piers, curved/arched walls, furniture/fixtures, MEP. Mixed wall materials on one floor ARE supported (rendered per material group).
 
 Call each tool with { spec: <object matching the tool's inputSchema> }. Determinism: an identical spec yields byte-identical SVG.`;
 

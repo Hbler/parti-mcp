@@ -33,7 +33,7 @@ Definition of done:
 - Worked example C — **two-floor building**: two per-floor sheets, with a structural grid and column bubbles.
 - Worked example D — **theme + fill**: the same house rendered in `whiteprint`, demonstrating theme switching and the per-element fill override.
 
-Out of scope for v1 of this canvas (explicitly deferred): 3D/isometric/axonometric and any projection (plan view only — no sections/elevations); raster export (PNG); **DXF/DWG export** (a legitimate future "editable in CAD" feature, but SVG is the right format for a rendered blueprint and stays the sole output for now); real geodata import (GeoJSON/lat-lon); furniture/fixture/appliance and stair symbol libraries (walls/openings/rooms/dims/grid only — a stair is a deferred symbol); MEP/electrical/plumbing symbols; **automatic** dimensioning or auto-grid inference (dimensions and grid lines are spec-driven — the LLM supplies them, the server renders them correctly); **fixed real-paper-size sheet layout** (A1/A3 etc. — v1 sheets are proportional to content, not snapped to a paper size, see Approach); and code-compliance/structural validation.
+Out of scope for v1 of this canvas (explicitly deferred): 3D/isometric/axonometric and any projection (plan view only — no sections/elevations); raster export (PNG); **DXF/DWG export** (a legitimate future "editable in CAD" feature, but SVG is the right format for a rendered blueprint and stays the sole output for now); real geodata import (GeoJSON/lat-lon); furniture/fixture/appliance symbol libraries (walls/openings/rooms/dims/grid/stairs/ladders only — furniture is deferred); MEP/electrical/plumbing symbols; **automatic** dimensioning or auto-grid inference (dimensions and grid lines are spec-driven — the LLM supplies them, the server renders them correctly); **fixed real-paper-size sheet layout** (A1/A3 etc. — v1 sheets are proportional to content, not snapped to a paper size, see Approach); and code-compliance/structural validation.
 
 ### Contract for callers (this MCP is driven by an LLM, not a human)
 
@@ -47,12 +47,20 @@ Rationale: the renderer is deliberately a pure function from a valid structured 
 
 ### Capability boundary (what the plan model can and cannot represent)
 
-The floor plan is a **2D horizontal cut at a fixed height** with a walls + rooms + openings vocabulary. It has **no vertical dimension** and **no fixture/structure vocabulary beyond walls**. Consequently, as of this canvas:
-- **Walls are full-height only.** There is no wall height, so **half-walls / low walls / partial-height partitions / railings** cannot be distinguished from a full wall — they would render as ordinary solid poché. (Deferred: a `heightClass`/below-cut flag rendering a dashed or lighter outline.)
-- **No isolated masonry / columns / piers** as a first-class entity (only grid *bubbles* exist, not the column). No **curved or arched** walls — walls are straight polyline segments. No **stairs/ladders** (deferred symbol, as above).
+The floor plan is a **2D horizontal cut at a fixed height** (~1.2 m / 4 ft above the floor — the conventional cut plane). It has **no continuous vertical model**, but a few entities carry a minimal above/below-cut distinction so vertical-circulation and low elements read correctly. As of this canvas:
+- **Walls carry a `heightClass`** (`full` default | `low`). A `full` wall is solid cut poché as before; a **`low` wall** (half-wall / pony / knee wall / railing — below the cut plane) is drawn as a **dashed outline, no poché fill**, per the standard "dashed = half-wall / change in height" convention. (Still no arbitrary wall height — just the full-vs-below-cut distinction that actually changes the linework.)
+- **Stairs and ladders are first-class entities** (see the Vertical-circulation subsection). Stairs render the conventional plan symbol: parallel tread lines, a centerline **direction arrow with an `UP`/`DN` label**, and a **diagonal break line** at the cut, with treads beyond the cut dashed. Ladders render two rails + rungs.
+- **Still not supported:** isolated **columns / piers** as a first-class entity (grid *bubbles* exist, not the column); **curved / arched** walls (straight polyline segments only); furniture / fixtures / appliances; MEP. These remain honest gaps.
 - **Per-wall `material` renders per material group.** Walls are grouped by `material`, and each group is offset+unioned+opening-cut+hatched independently. Junctions *within* one material stay seamless (single union); a seam *between* two different materials is intentional and correct — it is the material-change line. So a brick exterior + concrete interior on one floor renders each with its own hatch. (Earlier this collapsed the whole floor to `walls[0]`'s material; that is fixed.)
 
 These are honest boundaries a caller should design within (or route around by choosing the closest supported representation).
+
+### Vertical circulation & low elements (rendering conventions)
+
+Researched against standard architectural drafting practice; recorded here so the renderer matches real blueprints, not an invented symbol set.
+- **Stair** (`Stair`): the plan symbol is a run of **parallel tread lines** drawn perpendicular to the direction of travel, a **direction arrow** running along the centerline from the lowest riser toward the ascent, and a **text label** — **`UP`** on the lower floor (arrow points up-flight), **`DN`** on an upper floor (arrow points down). A **break line** (heavy diagonal / zig-zag) crosses the flight where the ~4 ft cut plane slices it: treads **below** the cut are solid, treads **above** are dashed (they are overhead). v1 models a straight run: the spec gives the flight rectangle (`footprint`), the number of `treads`, the travel `direction` (`up`|`down`), and which end is the bottom (via the path/first edge); the server lays out evenly-spaced tread lines, the arrow, the label, and one diagonal break line at the flight midpoint. L/U/switchback/spiral are deferred (a straight run is the base case; the others are landings + multiple runs the caller can approximate with multiple `Stair`s).
+- **Ladder** (`Ladder`): a schematic top view — **two parallel rails** along its `path` with short **perpendicular rungs** at regular intervals. Simpler than a stair (no cut/break-line, no UP/DN); used for lofts, roof access, pits.
+- Both are annotation-style symbols on their own layers (no poché, no boolean geometry) — they sit on top of the floor/room fills like doors and dimensions.
 
 ### How the contract reaches the caller (server discovery surface)
 

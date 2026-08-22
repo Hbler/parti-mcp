@@ -410,3 +410,188 @@ export function renderDimensionString(
   parts.push("</g>");
   return parts.join("\n");
 }
+
+
+/**
+ * Render a straight-run stair as the conventional plan symbol:
+ *  - parallel tread lines perpendicular to the direction of travel
+ *  - a centerline direction arrow from the bottom riser toward the top
+ *  - an "UP"/"DN" text label near the bottom
+ *  - a diagonal break line at the cut plane (flight midpoint); treads beyond
+ *    the cut are dashed (they are overhead / above the cut)
+ *
+ * @param footprint the flight rectangle (polygon)
+ * @param run       travel centerline [bottom, top] (bottom = lowest riser)
+ * @param treads    number of treads
+ * @param direction "up" (arrow toward top, label UP) | "down" (label DN)
+ */
+export function renderStair(
+  footprint: Coordinate[],
+  run: [Coordinate, Coordinate],
+  treads: number,
+  direction: "up" | "down",
+  labelOverride: string | undefined,
+  scale: string,
+  unit: Unit,
+  theme: Theme
+): string {
+  const palette = getTheme(theme);
+  const mpmm = modelPerPaperMm(scale, unit);
+  const parts: string[] = ['<g id="stair">'];
+
+  const [bottom, top] = run;
+  const dx = top[0] - bottom[0];
+  const dy = top[1] - bottom[1];
+  const runLen = Math.sqrt(dx * dx + dy * dy) || 1;
+  const dir = [dx / runLen, dy / runLen]; // unit along travel (bottom→top)
+  const perp = [-dir[1], dir[0]]; // unit across the flight
+
+  // Half-width of the flight = max projection of footprint vertices onto perp,
+  // measured from the run centerline (bottom point as origin).
+  let crossHalf = 0;
+  for (const [vx, vy] of footprint) {
+    const proj = Math.abs((vx - bottom[0]) * perp[0] + (vy - bottom[1]) * perp[1]);
+    crossHalf = Math.max(crossHalf, proj);
+  }
+  if (crossHalf === 0) crossHalf = runLen * 0.4; // degenerate fallback
+
+  const lw = getLineweight("light", scale, unit);
+  const fineLw = getLineweight("fine", scale, unit);
+  const dash = `${formatNumber(1.5 * mpmm)},${formatNumber(1 * mpmm)}`;
+
+  // Tread lines at i/treads along the run (interior risers).
+  // "cut" at flight midpoint: treads past it are overhead → dashed.
+  for (let i = 1; i < treads; i++) {
+    const t = i / treads;
+    const cx = bottom[0] + dir[0] * runLen * t;
+    const cy = bottom[1] + dir[1] * runLen * t;
+    const beyondCut = direction === "up" ? t > 0.5 : t < 0.5;
+    parts.push(
+      lineToSvg(
+        cx - perp[0] * crossHalf,
+        cy - perp[1] * crossHalf,
+        cx + perp[0] * crossHalf,
+        cy + perp[1] * crossHalf,
+        palette.ink,
+        lw,
+        beyondCut ? dash : undefined
+      )
+    );
+  }
+
+  // Diagonal break line across the flight at the midpoint (a shallow zig-zag).
+  {
+    const mx = bottom[0] + dir[0] * runLen * 0.5;
+    const my = bottom[1] + dir[1] * runLen * 0.5;
+    const along = runLen * 0.06; // zig extent along travel
+    const p1 = [mx - perp[0] * crossHalf - dir[0] * along, my - perp[1] * crossHalf - dir[1] * along];
+    const zz = [mx + dir[0] * along, my + dir[1] * along];
+    const p2 = [mx + perp[0] * crossHalf - dir[0] * along, my + perp[1] * crossHalf - dir[1] * along];
+    parts.push(
+      pathToSvg(polylineToSvg([p1 as Coordinate, zz as Coordinate, p2 as Coordinate]), "none", palette.ink, lw)
+    );
+  }
+
+  // Direction arrow along the centerline. Arrow points toward the top for
+  // "up", toward the bottom for "down".
+  {
+    const inset = runLen * 0.12;
+    const tail = direction === "up"
+      ? [bottom[0] + dir[0] * inset, bottom[1] + dir[1] * inset]
+      : [top[0] - dir[0] * inset, top[1] - dir[1] * inset];
+    const head = direction === "up"
+      ? [top[0] - dir[0] * inset, top[1] - dir[1] * inset]
+      : [bottom[0] + dir[0] * inset, bottom[1] + dir[1] * inset];
+    parts.push(lineToSvg(tail[0], tail[1], head[0], head[1], palette.ink, fineLw));
+
+    // Arrowhead at head.
+    const adir = direction === "up" ? dir : [-dir[0], -dir[1]];
+    const ah = 2.2 * mpmm; // arrowhead length
+    const aw = 1.3 * mpmm; // arrowhead half-width
+    const baseX = head[0] - adir[0] * ah;
+    const baseY = head[1] - adir[1] * ah;
+    parts.push(
+      pathToSvg(
+        polylineToSvg([
+          [baseX + perp[0] * aw, baseY + perp[1] * aw] as Coordinate,
+          head as Coordinate,
+          [baseX - perp[0] * aw, baseY - perp[1] * aw] as Coordinate,
+        ]),
+        "none",
+        palette.ink,
+        fineLw
+      )
+    );
+
+    // Label ("UP"/"DN") near the tail, offset to the side of the centerline.
+    const label = labelOverride ?? (direction === "up" ? "UP" : "DN");
+    const lox = tail[0] + perp[0] * (crossHalf + 1.5 * mpmm);
+    const loy = tail[1] + perp[1] * (crossHalf + 1.5 * mpmm);
+    parts.push(textToSvg(label, lox, loy, 2.5 * mpmm, palette.ink, "middle"));
+  }
+
+  parts.push("</g>");
+  return parts.join("\n");
+}
+
+/**
+ * Render a ladder as a schematic top view: two parallel rails along `path`
+ * with short perpendicular rungs at regular intervals. No cut/break line.
+ */
+export function renderLadder(
+  path: [Coordinate, Coordinate],
+  width: number,
+  scale: string,
+  unit: Unit,
+  theme: Theme
+): string {
+  const palette = getTheme(theme);
+  const mpmm = modelPerPaperMm(scale, unit);
+  const parts: string[] = ['<g id="ladder">'];
+
+  const [a, b] = path;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const dir = [dx / len, dy / len];
+  const perp = [-dir[1], dir[0]];
+  const half = width / 2;
+  const lw = getLineweight("light", scale, unit);
+  const fineLw = getLineweight("fine", scale, unit);
+
+  // Two rails.
+  for (const s of [1, -1]) {
+    parts.push(
+      lineToSvg(
+        a[0] + perp[0] * half * s,
+        a[1] + perp[1] * half * s,
+        b[0] + perp[0] * half * s,
+        b[1] + perp[1] * half * s,
+        palette.ink,
+        lw
+      )
+    );
+  }
+
+  // Rungs every ~4 paper-mm.
+  const spacing = 4 * mpmm;
+  const nRungs = Math.max(1, Math.floor(len / spacing));
+  for (let i = 0; i <= nRungs; i++) {
+    const t = nRungs === 0 ? 0 : i / nRungs;
+    const cx = a[0] + dir[0] * len * t;
+    const cy = a[1] + dir[1] * len * t;
+    parts.push(
+      lineToSvg(
+        cx + perp[0] * half,
+        cy + perp[1] * half,
+        cx - perp[0] * half,
+        cy - perp[1] * half,
+        palette.ink,
+        fineLw
+      )
+    );
+  }
+
+  parts.push("</g>");
+  return parts.join("\n");
+}

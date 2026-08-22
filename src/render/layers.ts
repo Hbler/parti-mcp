@@ -19,6 +19,7 @@ export const LayerIds = {
   WALLS: "A-WALL",
   GLAZING: "A-GLAZ",
   DOORS: "A-DOOR",
+  STAIRS: "A-STRS",
 
   // Annotation layers
   DIMS: "A-ANNO-DIMS",
@@ -67,6 +68,7 @@ export function getLayerOrder(): string[] {
     LayerIds.WALLS,
     LayerIds.GLAZING,
     LayerIds.DOORS,
+    LayerIds.STAIRS,
     LayerIds.DIMS,
     LayerIds.TEXT,
     LayerIds.GRID,

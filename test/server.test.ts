@@ -48,6 +48,7 @@ test("server discovery surface", async (t) => {
     assert(/\+y DOWN/i.test(INSTRUCTIONS), "should state the y-down axis convention");
     assert(/own coherence/i.test(INSTRUCTIONS), "should state caller-owns-coherence");
     assert(/no wayfinding/i.test(INSTRUCTIONS), "should state there is no reachability check");
-    assert(/stairs/i.test(INSTRUCTIONS), "should state the capability boundary (no stairs)");
+    assert(/stairs/i.test(INSTRUCTIONS), "should mention stairs (now a supported symbol)");
+    assert(/curved\/arched walls|furniture/i.test(INSTRUCTIONS), "should state a real capability boundary");
   });
 });

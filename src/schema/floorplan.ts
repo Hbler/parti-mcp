@@ -35,6 +35,12 @@ export type Hinge = z.infer<typeof HingeSchema>;
 export const SwingSideSchema = z.enum(["left", "right"]);
 export type SwingSide = z.infer<typeof SwingSideSchema>;
 
+export const WallHeightClassSchema = z.enum(["full", "low"]);
+export type WallHeightClass = z.infer<typeof WallHeightClassSchema>;
+
+export const StairDirectionSchema = z.enum(["up", "down"]);
+export type StairDirection = z.infer<typeof StairDirectionSchema>;
+
 // ============================================================================
 // Floor Plan Entities
 // ============================================================================
@@ -61,6 +67,10 @@ export const WallSchema = z.object({
   path: z.array(z.tuple([z.number(), z.number()])).min(2),
   thickness: z.number().positive(),
   material: z.string().optional(),
+  // "full" (default) = full-height cut wall (solid poché). "low" = half/pony/
+  // knee wall or railing, below the ~1.2m cut plane → drawn as a dashed
+  // outline with no poché fill (standard "dashed = half-wall" convention).
+  heightClass: WallHeightClassSchema.optional().default("full"),
   style: StyleSchema.optional(),
 });
 export type Wall = z.infer<typeof WallSchema>;
@@ -82,6 +92,41 @@ export const OpeningSchema = z.object({
 export type Opening = z.infer<typeof OpeningSchema>;
 
 /**
+ * Stair (straight run, plan symbol)
+ * `run` is the travel centerline: run[0] = bottom (lowest riser), run[1] = top.
+ * Treads are drawn perpendicular to `run`; the direction arrow follows `run`
+ * from bottom to top; a diagonal break line crosses the flight at the cut.
+ */
+export const StairSchema = z.object({
+  id: z.string(),
+  footprint: z.array(z.tuple([z.number(), z.number()])).min(3),
+  run: z.tuple([
+    z.tuple([z.number(), z.number()]),
+    z.tuple([z.number(), z.number()]),
+  ]),
+  treads: z.number().int().min(2),
+  direction: StairDirectionSchema.default("up"),
+  label: z.string().optional(), // overrides the default "UP"/"DN"
+  style: StyleSchema.optional(),
+});
+export type Stair = z.infer<typeof StairSchema>;
+
+/**
+ * Ladder (schematic top view: two rails + rungs)
+ * `path` is the rail centerline (start→end); `width` is the rail separation.
+ */
+export const LadderSchema = z.object({
+  id: z.string(),
+  path: z.tuple([
+    z.tuple([z.number(), z.number()]),
+    z.tuple([z.number(), z.number()]),
+  ]),
+  width: z.number().positive(),
+  style: StyleSchema.optional(),
+});
+export type Ladder = z.infer<typeof LadderSchema>;
+
+/**
  * Floor (one level of a building)
  */
 export const FloorSchema = z.object({
@@ -92,6 +137,8 @@ export const FloorSchema = z.object({
   rooms: z.array(RoomSchema).optional(),
   walls: z.array(WallSchema).optional(),
   openings: z.array(OpeningSchema).optional(),
+  stairs: z.array(StairSchema).optional(),
+  ladders: z.array(LadderSchema).optional(),
   dimensions: z.array(DimensionSchema).optional(),
   gridLines: z.array(GridLineSchema).optional(),
 });

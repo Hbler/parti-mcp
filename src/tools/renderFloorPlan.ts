@@ -24,7 +24,7 @@ import {
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveFill, resolveStroke, getContrastingTextColor } from "../render/theme.js";
 import { getMaterialPatternId } from "../render/defs.js";
-import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble } from "../render/symbols.js";
+import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble, renderStair, renderLadder } from "../render/symbols.js";
 import { generateSheet } from "../render/sheet.js";
 
 export interface ToolResult {
@@ -103,6 +103,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     "A-WALL": [],
     "A-GLAZ": [],
     "A-DOOR": [],
+    "A-STRS": [],
     "A-ANNO-DIMS": [],
     "A-ANNO-TEXT": [],
     "S-GRID": [],
@@ -166,9 +167,14 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     // the SAME material still union together (junctions within a material are
     // seamless); a seam between two DIFFERENT materials is correct — it is a
     // material-change line. Deterministic group order: first-seen order.
+    // Only FULL-height walls form cut poché; LOW walls (half/pony/knee walls,
+    // railings) are below the cut plane and render as a dashed outline instead.
+    const fullWalls = floor.walls.filter((w) => w.heightClass !== "low");
+    const lowWalls = floor.walls.filter((w) => w.heightClass === "low");
+
     const materialOrder: string[] = [];
     const wallsByMaterial = new Map<string, typeof floor.walls>();
-    for (const wall of floor.walls) {
+    for (const wall of fullWalls) {
       const material = wall.material || "solid";
       if (!wallsByMaterial.has(material)) {
         wallsByMaterial.set(material, []);
@@ -207,6 +213,29 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
             fillUrl,
             palette.ink,
             getLineweight("heavy", spec.scale, spec.unit)
+          )
+        );
+      }
+    }
+
+    // Low walls: offset+union each into its band outline, but render as a
+    // DASHED outline with NO fill (standard half-wall / change-in-height
+    // convention). They are not part of the cut poché.
+    if (lowWalls.length > 0) {
+      const lowBands: Polygon[] = [];
+      for (const wall of lowWalls) {
+        lowBands.push(...offsetCenterline(clipper, wall.path, wall.thickness));
+      }
+      const lowPoché = unionPolygons(clipper, lowBands);
+      const dash = `${formatNumber(1.5 * mpmm)},${formatNumber(1 * mpmm)}`;
+      for (const poly of lowPoché) {
+        layers["A-WALL"].push(
+          pathToSvg(
+            polygonToSvg(poly),
+            "none",
+            palette.ink,
+            getLineweight("light", spec.scale, spec.unit),
+            dash
           )
         );
       }
@@ -301,6 +330,35 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
   }
 
   // ========================================================================
+  // Stairs and Ladders (vertical circulation symbols)
+  // ========================================================================
+
+  if (floor.stairs && floor.stairs.length > 0) {
+    for (const stair of floor.stairs) {
+      layers["A-STRS"].push(
+        renderStair(
+          stair.footprint,
+          stair.run,
+          stair.treads,
+          stair.direction,
+          stair.label,
+          spec.scale,
+          spec.unit,
+          theme
+        )
+      );
+    }
+  }
+
+  if (floor.ladders && floor.ladders.length > 0) {
+    for (const ladder of floor.ladders) {
+      layers["A-STRS"].push(
+        renderLadder(ladder.path, ladder.width, spec.scale, spec.unit, theme)
+      );
+    }
+  }
+
+  // ========================================================================
   // Dimensions
   // ========================================================================
 
@@ -375,6 +433,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     "A-WALL",
     "A-GLAZ",
     "A-DOOR",
+    "A-STRS",
     "A-ANNO-DIMS",
     "A-ANNO-TEXT",
     "S-GRID",

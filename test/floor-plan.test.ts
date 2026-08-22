@@ -214,6 +214,98 @@ test("renderFloorPlan / Operation 11", async (t) => {
     );
   });
 
+  await t.test("renders a stair symbol with treads, direction arrow and UP label", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          stairs: [
+            {
+              id: "s1",
+              footprint: [[1, 1], [4, 1], [4, 2], [1, 2]],
+              run: [[1.2, 1.5], [3.8, 1.5]],
+              treads: 10,
+              direction: "up",
+            },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    const svg = result.content[0].text;
+    assert(svg.includes('id="stair"'), "stair group should be present");
+    assert(svg.includes("A-STRS"), "stair should be on the A-STRS layer");
+    assert(svg.includes(">UP<"), "up stair should carry an UP label");
+  });
+
+  await t.test("down stair carries a DN label", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 1,
+          stairs: [
+            {
+              id: "s1",
+              footprint: [[1, 1], [4, 1], [4, 2], [1, 2]],
+              run: [[1.2, 1.5], [3.8, 1.5]],
+              treads: 10,
+              direction: "down",
+            },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError);
+    assert(result.content[0].text.includes(">DN<"), "down stair should carry a DN label");
+  });
+
+  await t.test("renders a ladder with rails and rungs", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          ladders: [{ id: "l1", path: [[1, 1], [1, 3]], width: 0.5 }],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    assert(result.content[0].text.includes('id="ladder"'), "ladder group should be present");
+  });
+
+  await t.test("low (half) wall renders as a dashed no-fill outline, not solid poché", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          walls: [
+            { id: "full1", path: [[0, 0], [10, 0]], thickness: 0.3, material: "brick" },
+            { id: "low1", path: [[0, 5], [10, 5]], thickness: 0.1, heightClass: "low" },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    const svg = result.content[0].text;
+    // The low wall must produce a dashed stroke somewhere in A-WALL.
+    assert(svg.includes("stroke-dasharray"), "low wall should render dashed");
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderFloorPlan({ spec: "not json" });
     assert(result.isError);
