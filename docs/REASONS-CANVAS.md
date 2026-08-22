@@ -35,6 +35,25 @@ Definition of done:
 
 Out of scope for v1 of this canvas (explicitly deferred): 3D/isometric/axonometric and any projection (plan view only — no sections/elevations); raster export (PNG); **DXF/DWG export** (a legitimate future "editable in CAD" feature, but SVG is the right format for a rendered blueprint and stays the sole output for now); real geodata import (GeoJSON/lat-lon); furniture/fixture/appliance and stair symbol libraries (walls/openings/rooms/dims/grid only — a stair is a deferred symbol); MEP/electrical/plumbing symbols; **automatic** dimensioning or auto-grid inference (dimensions and grid lines are spec-driven — the LLM supplies them, the server renders them correctly); **fixed real-paper-size sheet layout** (A1/A3 etc. — v1 sheets are proportional to content, not snapped to a paper size, see Approach); and code-compliance/structural validation.
 
+### Contract for callers (this MCP is driven by an LLM, not a human)
+
+**The server renders exactly what the spec describes; it does not infer, correct, or complete the design.** Geometric coherence — and any *intentional* incoherence — is the **caller's responsibility**. The caller (the LLM producing the spec) must ensure the plan makes sense before calling the tool:
+- **Rooms tile the floor.** Room polygons should partition the interior without overlaps or unintended gaps; each is authored to the interior wall face. The server does not derive rooms from walls or walls from rooms — you place both, consistently.
+- **Walls enclose.** Wall centerlines must actually meet/overlap at corners to form closed enclosures (they are unioned, so overlapping endpoints merge cleanly). A wall that stops short of the next wall leaves a gap the server will faithfully render.
+- **Openings connect.** A door should sit on the wall segment that actually separates the two spaces it joins, and `positionAlongWall` should place it where those spaces are adjacent. The server cuts the opening wherever you point it — including into the wrong room or into solid poché if the spec is wrong.
+- **Circulation is reachable.** Every room a person should reach must be reachable from an entrance through a connected sequence of doors. The server does **no** wayfinding/reachability check: "bedroom only reachable through another bedroom," "a room with no door," or "a bathroom with three walls" are all valid *input* the server will render as given. If that layout is intended (walk-through closet, open-plan with no divider, mechanical chase), it renders fine; if it is a mistake, it is a mistake in the spec, not the render.
+
+Rationale: the renderer is deliberately a pure function from a valid structured spec to a correct SVG (see the Definition-of-done "no LLM inference" line). Adding architectural judgment to the server would blur that boundary and would wrongly reject legitimate unconventional plans. The caller owns semantics; the server owns faithful, standards-compliant drawing.
+
+### Capability boundary (what the plan model can and cannot represent)
+
+The floor plan is a **2D horizontal cut at a fixed height** with a walls + rooms + openings vocabulary. It has **no vertical dimension** and **no fixture/structure vocabulary beyond walls**. Consequently, as of this canvas:
+- **Walls are full-height only.** There is no wall height, so **half-walls / low walls / partial-height partitions / railings** cannot be distinguished from a full wall — they would render as ordinary solid poché. (Deferred: a `heightClass`/below-cut flag rendering a dashed or lighter outline.)
+- **No isolated masonry / columns / piers** as a first-class entity (only grid *bubbles* exist, not the column). No **curved or arched** walls — walls are straight polyline segments. No **stairs/ladders** (deferred symbol, as above).
+- **Per-wall `material` is authored but rendering is per-floor:** because all walls on a floor are unioned into one poché polygon, the merged mass takes a single material hatch. Mixed materials on one floor (brick exterior + concrete interior) are a spec you can write but the current renderer collapses to one hatch — a known limitation of the union pipeline, not a per-wall render.
+
+These are honest boundaries a caller should design within (or route around by choosing the closest supported representation).
+
 ## E — Entities
 
 Coordinates are 2D `[x, y]` in the spec's declared real `unit`, SVG-native axes (origin top-left, +x right, +y **down**), 1:1 into SVG user space (no y-flip). Every drawable entity accepts an optional **`style`** override; unset fields fall back to type + theme defaults.
