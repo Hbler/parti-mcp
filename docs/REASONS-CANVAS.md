@@ -1,4 +1,4 @@
-# REASONS Canvas — plan-mcp (v2: blueprint / architectural-standard)
+# REASONS Canvas — parti-mcp (v2: blueprint / architectural-standard)
 
 > Structured Prompt-Driven Development canvas. See vault note `Coding/AI/Reasons-Canvas-SPDD.md` for the method. This canvas is the source of truth — if implementation and this document diverge, fix this document first, then regenerate/update code.
 >
@@ -131,10 +131,10 @@ Relationships: root specs hold flat sibling arrays; spatial containment is impli
 
 ## S — Structure
 
-Standalone repo `~/Coding/plan-mcp` (TypeScript/Node, own git repo — outside the Obsidian vault per iCloud-sync concerns in the vault's CLAUDE.md).
+Standalone repo `~/Coding/parti-mcp` (TypeScript/Node, own git repo — outside the Obsidian vault per iCloud-sync concerns in the vault's CLAUDE.md).
 
 ```
-plan-mcp/
+parti-mcp/
 ├── src/
 │   ├── index.ts                 # MCP server, stdio, tool registration, one-time Clipper WASM init (carried from v1 scaffold)
 │   ├── outputPath.ts            # file-write sandboxing (carried unchanged from v1)

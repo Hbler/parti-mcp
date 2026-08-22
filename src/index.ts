@@ -40,7 +40,7 @@ function buildInputSchema(specSchema: z.ZodTypeAny, specDescription: string) {
  * Distilled from the design canvas (which is NOT shipped): conventions, the
  * caller-owns-coherence contract, and the capability boundary.
  */
-const INSTRUCTIONS = `plan-mcp renders 2D architectural drawings as SVG from structured JSON specs. Two tools:
+const INSTRUCTIONS = `parti-mcp renders 2D architectural drawings as SVG from structured JSON specs. Two tools:
 - render_floor_plan(spec: FloorPlanSpec): an interior floor plan (floors, rooms, walls, door/window openings, dimensions, structural grid). Returns one SVG per floor.
 - render_site_plan(spec: SiteSpec): an exterior site plan (buildings, parcels, roads, hardscape, water, landscape, barriers, trees). Returns one SVG.
 
@@ -60,7 +60,7 @@ Call each tool with { spec: <object matching the tool's inputSchema> }. Determin
 
 const server = new Server(
   {
-    name: "plan-mcp",
+    name: "parti-mcp",
     version: "1.0.0",
   },
   {
