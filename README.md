@@ -2,6 +2,12 @@
 
 An MCP server that renders architectural floor plans and site plans as SVG in a blueprint aesthetic, following real architectural drawing conventions. Built with precision planar geometry (Clipper WASM + flatten-js).
 
+| Office floor plan (`office.json`) | Residential floor plan (`house.json`) |
+| :---: | :---: |
+| ![Office building Level 2 — elevator/stair core, corridor, offices, columns](docs/images/office_L0.png) | ![Two-bedroom bungalow — living/dining, kitchen, hall, bedrooms, bathroom](docs/images/house_L0.png) |
+
+Both images are rendered directly by the server from the specs in [`examples/`](examples/) — walls with cut poché, door swing symbols, room labels with computed areas, an elevator shaft and stair with UP/DN, dimensions, a title block, north arrow, and scale bar.
+
 ## Features
 
 - **Precision geometry engine**: Uses Clipper (js-angusj-clipper) for robust planar geometry operations with integer-precision scaling
@@ -314,6 +320,10 @@ All code follows TypeScript strict mode. Changes must:
 2. Pass `npm test` (full test suite)
 3. Update relevant tests if schemas or rendering change
 4. For new examples, render to `output/examples/` and visually verify (e.g. rasterize with `qlmanage -t -s 1600 -o <dir> output/examples/*.svg`)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ## Version History
 
