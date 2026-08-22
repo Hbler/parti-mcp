@@ -19,7 +19,7 @@ import {
   polylineToSvg,
   pathToSvg,
   circleToSvg,
-  textToSvg,
+  textLinesWithHaloToSvg,
   formatNumber,
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveColor, getContrastingTextColor } from "../render/theme.js";
@@ -155,7 +155,7 @@ function renderSitePlan(spec: SiteSpec): string {
       if (building.label) {
         const [cx, cy] = getCentroid(building.footprint);
         layers["A-ANNO-TEXT"].push(
-          textToSvg(building.label, cx, cy, labelSize, getContrastingTextColor(fill, theme), "middle")
+          textLinesWithHaloToSvg([building.label], cx, cy, labelSize, getContrastingTextColor(fill, theme), fill, "middle")
         );
       }
     }
@@ -200,7 +200,7 @@ function renderSitePlan(spec: SiteSpec): string {
       if (paved.surface) {
         const [cx, cy] = getCentroid(paved.polygon);
         layers["A-ANNO-TEXT"].push(
-          textToSvg(titleCase(paved.surface), cx, cy, labelSize, palette.ink, "middle")
+          textLinesWithHaloToSvg([titleCase(paved.surface)], cx, cy, labelSize, palette.ink, palette.background, "middle")
         );
       }
 
@@ -238,7 +238,7 @@ function renderSitePlan(spec: SiteSpec): string {
       if (waterFeature.waterType) {
         const [cx, cy] = getCentroid(waterFeature.polygon);
         layers["A-ANNO-TEXT"].push(
-          textToSvg(titleCase(waterFeature.waterType), cx, cy, labelSize, palette.ink, "middle")
+          textLinesWithHaloToSvg([titleCase(waterFeature.waterType)], cx, cy, labelSize, palette.ink, palette.background, "middle")
         );
       }
     }
@@ -265,7 +265,7 @@ function renderSitePlan(spec: SiteSpec): string {
       if (green.landscapeType) {
         const [gcx, gcy] = getCentroid(green.polygon);
         layers["A-ANNO-TEXT"].push(
-          textToSvg(titleCase(green.landscapeType), gcx, gcy, labelSize, palette.ink, "middle")
+          textLinesWithHaloToSvg([titleCase(green.landscapeType)], gcx, gcy, labelSize, palette.ink, palette.background, "middle")
         );
       }
     }

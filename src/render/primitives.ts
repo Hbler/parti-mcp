@@ -168,6 +168,40 @@ export function textLinesToSvg(
 }
 
 /**
+ * Multi-line label with a "safe area" halo: a background rectangle in the
+ * sheet/background color is drawn behind the text so busy floor hatching
+ * doesn't render through it and the label stays legible. The rect is sized to
+ * the widest line (monospace metrics) plus padding, centered on (x, y).
+ */
+export function textLinesWithHaloToSvg(
+  lines: string[],
+  x: number,
+  y: number,
+  fontSize: number,
+  fill: string,
+  haloColor: string,
+  textAnchor: "start" | "middle" | "end" = "middle"
+): string {
+  if (lines.length === 0) {
+    return "";
+  }
+  const lineHeight = fontSize * 1.2;
+  const padX = fontSize * 0.5;
+  const padY = fontSize * 0.35;
+  const widest = lines.reduce((m, l) => Math.max(m, estimateTextWidth(l, fontSize)), 0);
+  const boxW = widest + 2 * padX;
+  const boxH = lines.length * lineHeight + 2 * padY;
+  // Centered on (x, y) for the middle anchor (the only anchor rooms use).
+  const boxX = x - boxW / 2;
+  const boxY = y - boxH / 2;
+  const halo =
+    `<rect x="${formatNumber(boxX)}" y="${formatNumber(boxY)}" ` +
+    `width="${formatNumber(boxW)}" height="${formatNumber(boxH)}" ` +
+    `fill="${haloColor}" fill-opacity="0.85" stroke="none" />`;
+  return halo + "\n" + textLinesToSvg(lines, x, y, fontSize, fill, textAnchor);
+}
+
+/**
  * Generate SVG <circle> element
  */
 export function circleToSvg(
@@ -216,11 +250,15 @@ export function pathToSvg(
   fill: string = "none",
   stroke: string = "black",
   strokeWidth: number = 1,
-  strokeDasharray?: string
+  strokeDasharray?: string,
+  fillRule?: string
 ): string {
   let attrs = `d="${d}" fill="${fill}" stroke="${stroke}" ` +
     `stroke-width="${formatNumber(strokeWidth)}"`;
 
+  if (fillRule) {
+    attrs += ` fill-rule="${fillRule}"`;
+  }
   if (strokeDasharray) {
     attrs += ` stroke-dasharray="${strokeDasharray}"`;
   }

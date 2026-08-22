@@ -374,6 +374,33 @@ test("renderFloorPlan / Operation 11", async (t) => {
     assert(svg.includes(">ELEV<"), "elevator label should render");
   });
 
+  await t.test("enclosed room: wall poché uses fill-rule evenodd so the room is not flooded", async () => {
+    // Four walls forming a closed loop enclose a room void. The wall poché
+    // must render as one even-odd path so the interior is a hole, not filled.
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "f",
+          level: 0,
+          walls: [
+            { id: "n", path: [[0, 0], [6, 0]], thickness: 0.3, material: "concrete" },
+            { id: "s", path: [[0, 5], [6, 5]], thickness: 0.3, material: "concrete" },
+            { id: "w", path: [[0, 0], [0, 5]], thickness: 0.3, material: "concrete" },
+            { id: "e", path: [[6, 0], [6, 5]], thickness: 0.3, material: "concrete" },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    assert(
+      result.content[0].text.includes('fill-rule="evenodd"'),
+      "wall poché should use fill-rule=evenodd so enclosed voids are holes"
+    );
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderFloorPlan({ spec: "not json" });
     assert(result.isError);

@@ -19,7 +19,7 @@ import {
   polylineToSvg,
   pathToSvg,
   lineToSvg,
-  textLinesToSvg,
+  textLinesWithHaloToSvg,
   formatNumber,
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveFill, resolveStroke, getContrastingTextColor } from "../render/theme.js";
@@ -242,14 +242,21 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       // Render this material group's poché with its own hatch.
       const patternId = getMaterialPatternId(material);
       const fillUrl = patternId !== "none" ? `url(#${patternId})` : palette.pochéFill;
-      for (const wallPoly of groupPoché) {
-        const pathData = polygonToSvg(wallPoly);
+      // Combine the group's polygons into ONE path with fill-rule="evenodd".
+      // Clipper returns enclosed voids (e.g. a room surrounded by walls) as
+      // separate opposite-winding paths; drawn individually they'd each fill
+      // solid and flood the room. As subpaths of one even-odd path, those
+      // voids become holes and only the wall band is filled.
+      if (groupPoché.length > 0) {
+        const combined = groupPoché.map((poly) => polygonToSvg(poly)).join(" ");
         layers["A-WALL"].push(
           pathToSvg(
-            pathData,
+            combined,
             fillUrl,
             palette.ink,
-            getLineweight("heavy", spec.scale, spec.unit)
+            getLineweight("heavy", spec.scale, spec.unit),
+            undefined,
+            "evenodd"
           )
         );
       }
@@ -316,12 +323,13 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
         const area = getPolygonArea(room.polygon);
         const areaText = `${area.toFixed(1)} ${spec.unit}²`;
 
-        const labelText = textLinesToSvg(
+        const labelText = textLinesWithHaloToSvg(
           [room.label, areaText],
           centroid[0],
           centroid[1],
           3.5 * mpmm,
           getContrastingTextColor(room.style?.fill, theme),
+          room.style?.fill || palette.background,
           "middle"
         );
         layers["A-ANNO-TEXT"].push(labelText);
