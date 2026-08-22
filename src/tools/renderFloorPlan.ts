@@ -203,6 +203,10 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       wallsByMaterial.get(material)!.push(wall);
     }
 
+    // Poché drawn by earlier material groups, subtracted from later groups so
+    // material regions tile without overlap.
+    const drawnPoché: Polygon[] = [];
+
     for (const material of materialOrder) {
       const group = wallsByMaterial.get(material)!;
 
@@ -213,6 +217,18 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       }
       let groupPoché = unionPolygons(clipper, bands);
 
+      // Subtract poché already drawn by earlier material groups so the groups
+      // TILE without overlap: an interior partition butts flush against the
+      // exterior wall's inner face (the material-change line lands on that
+      // face) instead of the interior wall's full rectangle overlapping — and
+      // outlining inside — the exterior wall. First-authored material owns the
+      // shared region (author exterior/structural walls first).
+      if (drawnPoché.length > 0) {
+        groupPoché = groupPoché.flatMap((poly) =>
+          differencePolygons(clipper, poly, drawnPoché)
+        );
+      }
+
       // Cut all openings from this group's poché.
       if (openingCutters.length > 0) {
         groupPoché = groupPoché.flatMap((poly) =>
@@ -221,6 +237,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       }
 
       wallPoché.push(...groupPoché);
+      drawnPoché.push(...groupPoché);
 
       // Render this material group's poché with its own hatch.
       const patternId = getMaterialPatternId(material);

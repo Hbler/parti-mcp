@@ -442,6 +442,12 @@ test("renderFloorPlan / Operation 12: examples/two-floor.json integration", asyn
 
   assert(result.content[0].text.includes("Living Room"), "Ground floor should contain Living Room");
   assert(result.content[0].text.includes("Kitchen"), "Ground floor should contain Kitchen");
+
+  // The stacked stair: UP on the ground floor, DN on the first floor.
+  assert(result.content[0].text.includes(">UP<"), "Ground floor stair should be marked UP");
+  assert(result.content[1].text.includes(">DN<"), "First floor stair should be marked DN");
+  // Structural columns present on both floors.
+  assert(result.content[0].text.includes('id="column"'), "Ground floor should have columns");
 });
 
 // Operation 12d: Integration test for house-whiteprint.json example
@@ -474,9 +480,9 @@ test("renderFloorPlan / Operation 12: examples/house-whiteprint.json integration
   // element, so presence alone wouldn't have caught it. Assert the label's
   // fill color is not equal to the theme's own background (white), which
   // would be the invisible-text case.
-  const labelMatch = text.match(/<text[^>]*fill="([^"]+)"[^>]*>(?:(?!<\/text>)[\s\S])*Living Room/);
-  assert(labelMatch, "Should contain a Living Room label with a fill color");
-  assert.notEqual(labelMatch![1].toUpperCase(), "#FFFFFF", "Living Room label must not be white-on-white");
+  const labelMatch = text.match(/<text[^>]*fill="([^"]+)"[^>]*>(?:(?!<\/text>)[\s\S])*Living \/ Dining/);
+  assert(labelMatch, "Should contain a Living / Dining label with a fill color");
+  assert.notEqual(labelMatch![1].toUpperCase(), "#FFFFFF", "Living / Dining label must not be white-on-white");
 
   assert(text.includes("Kitchen"), "Should contain Kitchen");
 });

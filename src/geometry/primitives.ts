@@ -181,14 +181,14 @@ export function tessellateArc(
 
   // Angles of the endpoints about the center.
   const a0 = Math.atan2(from[1] - cy, from[0] - cx);
-  let a1 = Math.atan2(to[1] - cy, to[0] - cx);
-  // Sweep the short way, in the direction implied by `clockwise`.
+  const a1 = Math.atan2(to[1] - cy, to[0] - cx);
+  // Always sweep the MINOR arc (shortest way, |sweep| ≤ π). Which side the arc
+  // bulges toward is already fixed by the center chosen via `clockwise` above;
+  // the sweep direction must not also depend on `clockwise`, or it selects the
+  // reflex (major) arc and the wall wraps almost all the way around the circle.
   let sweep = a1 - a0;
-  if (clockwise) {
-    if (sweep > 0) sweep -= 2 * Math.PI;
-  } else {
-    if (sweep < 0) sweep += 2 * Math.PI;
-  }
+  while (sweep > Math.PI) sweep -= 2 * Math.PI;
+  while (sweep < -Math.PI) sweep += 2 * Math.PI;
 
   // Segment count from arc tolerance: max angular step where sagitta ≤ tol.
   // sagitta = r(1 - cos(step/2)) ≤ tol  →  step ≤ 2*acos(1 - tol/r).
