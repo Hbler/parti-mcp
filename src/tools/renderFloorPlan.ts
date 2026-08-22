@@ -11,7 +11,7 @@ import {
   differencePolygons,
   type Polygon,
 } from "../geometry/clipper.js";
-import { getPointAlongPath, getDoorcSwingArc, getBbox, getCentroid, getPolygonArea, getPerpendicular } from "../geometry/primitives.js";
+import { getPointAlongPath, getDoorcSwingArc, getBbox, getCentroid, getPolygonArea, getPerpendicular, tessellateArc } from "../geometry/primitives.js";
 import { modelPerPaperMm } from "../geometry/scale.js";
 import { createLayerGroup } from "../render/layers.js";
 import {
@@ -24,7 +24,7 @@ import {
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveFill, resolveStroke, getContrastingTextColor } from "../render/theme.js";
 import { getMaterialPatternId } from "../render/defs.js";
-import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble, renderStair, renderLadder } from "../render/symbols.js";
+import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble, renderStair, renderLadder, renderColumn } from "../render/symbols.js";
 import { generateSheet } from "../render/sheet.js";
 
 export interface ToolResult {
@@ -90,6 +90,24 @@ export async function handleRenderFloorPlan(
 }
 
 /**
+ * Resolve a wall's effective centerline. A straight wall returns its `path`
+ * unchanged; a curved wall (2-point path + `curve`) returns the arc tessellated
+ * into a dense polyline, so every downstream consumer (offset, opening cut,
+ * door/window placement, bbox) sees the same geometry.
+ */
+function wallPath(wall: { path: [number, number][]; curve?: { radius: number; clockwise: boolean } }): [number, number][] {
+  if (wall.curve && wall.path.length === 2) {
+    return tessellateArc(
+      wall.path[0],
+      wall.path[1],
+      wall.curve.radius,
+      wall.curve.clockwise
+    );
+  }
+  return wall.path;
+}
+
+/**
  * Render a single floor
  */
 function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
@@ -101,6 +119,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
   const layers: Record<string, string[]> = {
     "A-FLOR": [],
     "A-WALL": [],
+    "S-COLS": [],
     "A-GLAZ": [],
     "A-DOOR": [],
     "A-STRS": [],
@@ -125,12 +144,13 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       for (const opening of floor.openings) {
         const wall = floor.walls.find((w) => w.id === opening.wallId);
         if (!wall) continue;
+        const wpath = wallPath(wall);
 
         const openingPoint = getPointAlongPath(
-          wall.path,
+          wpath,
           opening.positionAlongWall
         );
-        const perpPoint = getPerpendicular(wall.path, opening.positionAlongWall, 1);
+        const perpPoint = getPerpendicular(wpath, opening.positionAlongWall, 1);
         const perpVec = [
           perpPoint[0] - openingPoint[0],
           perpPoint[1] - openingPoint[1],
@@ -189,7 +209,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       // Offset + union this material's walls into one poché.
       const bands: Polygon[] = [];
       for (const wall of group) {
-        bands.push(...offsetCenterline(clipper, wall.path, wall.thickness));
+        bands.push(...offsetCenterline(clipper, wallPath(wall), wall.thickness));
       }
       let groupPoché = unionPolygons(clipper, bands);
 
@@ -224,7 +244,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     if (lowWalls.length > 0) {
       const lowBands: Polygon[] = [];
       for (const wall of lowWalls) {
-        lowBands.push(...offsetCenterline(clipper, wall.path, wall.thickness));
+        lowBands.push(...offsetCenterline(clipper, wallPath(wall), wall.thickness));
       }
       const lowPoché = unionPolygons(clipper, lowBands);
       const dash = `${formatNumber(1.5 * mpmm)},${formatNumber(1 * mpmm)}`;
@@ -300,6 +320,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     for (const opening of floor.openings) {
       const wall = floor.walls?.find((w) => w.id === opening.wallId);
       if (!wall) continue;
+      const wpath = wallPath(wall);
 
       if (opening.type === "door") {
         // Door swing (hinge + swingSide fields)
@@ -307,7 +328,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
         const swingRight = opening.swingSide === "right";
 
         const doorSvg = renderDoorSwing(
-          wall.path,
+          wpath,
           opening.positionAlongWall,
           opening.width,
           hingeAtStart,
@@ -318,7 +339,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
       } else if (opening.type === "window") {
         // Window glazing (parallel lines)
         const windowSvg = renderWindowGlazing(
-          wall.path,
+          wpath,
           opening.positionAlongWall,
           opening.width,
           wall.thickness,
@@ -354,6 +375,37 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     for (const ladder of floor.ladders) {
       layers["A-STRS"].push(
         renderLadder(ladder.path, ladder.width, spec.scale, spec.unit, theme)
+      );
+    }
+  }
+
+  // ========================================================================
+  // Columns / piers / isolated masonry (structural point elements)
+  // ========================================================================
+
+  if (floor.columns && floor.columns.length > 0) {
+    for (const column of floor.columns) {
+      // Resolve fill: per-element style.fill wins; else material hatch; else poché.
+      let fill: string;
+      if (column.style?.fill) {
+        fill = column.style.fill;
+      } else if (column.material) {
+        const patternId = getMaterialPatternId(column.material);
+        fill = patternId !== "none" ? `url(#${patternId})` : palette.pochéFill;
+      } else {
+        fill = palette.pochéFill;
+      }
+
+      layers["S-COLS"].push(
+        renderColumn(
+          column.position,
+          column.shape,
+          { size: column.size, width: column.width, depth: column.depth },
+          fill,
+          spec.scale,
+          spec.unit,
+          theme
+        )
       );
     }
   }
@@ -431,6 +483,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
   const layerOrder = [
     "A-FLOR",
     "A-WALL",
+    "S-COLS",
     "A-GLAZ",
     "A-DOOR",
     "A-STRS",
@@ -451,7 +504,7 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
   if (floor.walls) {
     // Add wall centerlines as bounding points
     for (const wall of floor.walls) {
-      allPolygons.push(wall.path);
+      allPolygons.push(wallPath(wall));
     }
   }
   if (floor.rooms) allPolygons.push(...floor.rooms.map((r) => r.polygon));

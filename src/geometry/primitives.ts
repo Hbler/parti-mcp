@@ -139,6 +139,74 @@ export function getPointAlongPath(path: Path, t: number): Coordinate {
 }
 
 /**
+ * Tessellate a circular arc through two endpoints into a dense polyline.
+ *
+ * Given `from`, `to`, and a `radius`, there are two candidate circle centers
+ * (mirror images across the chord); `clockwise` selects which side the arc
+ * bulges toward (i.e. the direction of travel from `from` to `to`). The arc is
+ * the *minor* arc for the chosen center. The number of segments is bounded by
+ * an arc tolerance so the flattened arc never deviates from the true arc by
+ * more than ~`tolerance` model units.
+ *
+ * Returns a polyline [from, ..., to]. Falls back to the straight chord if the
+ * radius is too small to span the endpoints (radius < half chord).
+ */
+export function tessellateArc(
+  from: Coordinate,
+  to: Coordinate,
+  radius: number,
+  clockwise: boolean,
+  tolerance = 0.02
+): Coordinate[] {
+  const mx = (from[0] + to[0]) / 2;
+  const my = (from[1] + to[1]) / 2;
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const chord = Math.sqrt(dx * dx + dy * dy);
+
+  // Degenerate / impossible radius → straight chord.
+  if (chord === 0 || radius < chord / 2) {
+    return [from, to];
+  }
+
+  // Distance from chord midpoint to the circle center.
+  const h = Math.sqrt(Math.max(0, radius * radius - (chord / 2) * (chord / 2)));
+  // Unit normal to the chord.
+  const nx = -dy / chord;
+  const ny = dx / chord;
+  // Two centers: pick side by `clockwise`.
+  const sign = clockwise ? 1 : -1;
+  const cx = mx + sign * h * nx;
+  const cy = my + sign * h * ny;
+
+  // Angles of the endpoints about the center.
+  const a0 = Math.atan2(from[1] - cy, from[0] - cx);
+  let a1 = Math.atan2(to[1] - cy, to[0] - cx);
+  // Sweep the short way, in the direction implied by `clockwise`.
+  let sweep = a1 - a0;
+  if (clockwise) {
+    if (sweep > 0) sweep -= 2 * Math.PI;
+  } else {
+    if (sweep < 0) sweep += 2 * Math.PI;
+  }
+
+  // Segment count from arc tolerance: max angular step where sagitta ≤ tol.
+  // sagitta = r(1 - cos(step/2)) ≤ tol  →  step ≤ 2*acos(1 - tol/r).
+  const maxStep = 2 * Math.acos(Math.max(-1, Math.min(1, 1 - tolerance / radius)));
+  const segments = Math.max(2, Math.ceil(Math.abs(sweep) / Math.max(1e-6, maxStep)));
+
+  const pts: Coordinate[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = a0 + (sweep * i) / segments;
+    pts.push([cx + radius * Math.cos(a), cy + radius * Math.sin(a)]);
+  }
+  // Pin exact endpoints (avoid float drift so wall junctions stay coincident).
+  pts[0] = [from[0], from[1]];
+  pts[pts.length - 1] = [to[0], to[1]];
+  return pts;
+}
+
+/**
  * Get the unit tangent (direction) of a path at a given position ∈ [0, 1].
  * Returns a unit vector along the segment containing that position.
  */

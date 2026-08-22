@@ -41,6 +41,20 @@ export type WallHeightClass = z.infer<typeof WallHeightClassSchema>;
 export const StairDirectionSchema = z.enum(["up", "down"]);
 export type StairDirection = z.infer<typeof StairDirectionSchema>;
 
+export const ColumnShapeSchema = z.enum(["square", "rectangular", "round"]);
+export type ColumnShape = z.infer<typeof ColumnShapeSchema>;
+
+/**
+ * Optional circular-arc curve for a wall whose `path` has exactly two points.
+ * The server fits an arc through the two endpoints at `radius` and tessellates
+ * it before offsetting. `clockwise` picks which side the arc bulges toward.
+ */
+export const WallCurveSchema = z.object({
+  radius: z.number().positive(),
+  clockwise: z.boolean().default(false),
+});
+export type WallCurve = z.infer<typeof WallCurveSchema>;
+
 // ============================================================================
 // Floor Plan Entities
 // ============================================================================
@@ -71,6 +85,8 @@ export const WallSchema = z.object({
   // knee wall or railing, below the ~1.2m cut plane → drawn as a dashed
   // outline with no poché fill (standard "dashed = half-wall" convention).
   heightClass: WallHeightClassSchema.optional().default("full"),
+  // Optional circular arc: only valid when `path` has exactly two points.
+  curve: WallCurveSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type Wall = z.infer<typeof WallSchema>;
@@ -127,6 +143,25 @@ export const LadderSchema = z.object({
 export type Ladder = z.infer<typeof LadderSchema>;
 
 /**
+ * Column / pier / isolated masonry pad (structural point element).
+ * Drawn as its plan footprint filled with poché or a material hatch.
+ *  - square:      `size` (side length)
+ *  - rectangular: `width` × `depth`
+ *  - round:       `size` (diameter)
+ */
+export const ColumnSchema = z.object({
+  id: z.string(),
+  position: z.tuple([z.number(), z.number()]),
+  shape: ColumnShapeSchema.default("square"),
+  size: z.number().positive().optional(), // square side / round diameter
+  width: z.number().positive().optional(), // rectangular
+  depth: z.number().positive().optional(), // rectangular
+  material: z.string().optional(),
+  style: StyleSchema.optional(),
+});
+export type Column = z.infer<typeof ColumnSchema>;
+
+/**
  * Floor (one level of a building)
  */
 export const FloorSchema = z.object({
@@ -139,6 +174,7 @@ export const FloorSchema = z.object({
   openings: z.array(OpeningSchema).optional(),
   stairs: z.array(StairSchema).optional(),
   ladders: z.array(LadderSchema).optional(),
+  columns: z.array(ColumnSchema).optional(),
   dimensions: z.array(DimensionSchema).optional(),
   gridLines: z.array(GridLineSchema).optional(),
 });

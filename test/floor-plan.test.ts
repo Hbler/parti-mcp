@@ -306,6 +306,52 @@ test("renderFloorPlan / Operation 11", async (t) => {
     assert(svg.includes("stroke-dasharray"), "low wall should render dashed");
   });
 
+  await t.test("renders a column footprint on the S-COLS layer", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          columns: [
+            { id: "c1", position: [5, 5], shape: "square", size: 0.4, material: "concrete" },
+            { id: "c2", position: [8, 5], shape: "round", size: 0.5 },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    const svg = result.content[0].text;
+    assert(svg.includes("S-COLS"), "columns should be on the S-COLS layer");
+    assert(svg.includes('id="column"'), "column group should be present");
+    assert(svg.includes("<circle"), "round column should emit a circle");
+  });
+
+  await t.test("curved wall: a 2-point path + curve tessellates into many segments", async () => {
+    const straight = {
+      unit: "m",
+      scale: "1:50",
+      floors: [{ id: "f", level: 0, walls: [{ id: "w", path: [[0, 0], [4, 0]], thickness: 0.3 }] }],
+    };
+    const curved = {
+      unit: "m",
+      scale: "1:50",
+      floors: [{ id: "f", level: 0, walls: [{ id: "w", path: [[0, 0], [4, 0]], thickness: 0.3, curve: { radius: 3, clockwise: false } }] }],
+    };
+    const rs = await handleRenderFloorPlan({ spec: straight });
+    const rc = await handleRenderFloorPlan({ spec: curved });
+    assert(!rs.isError && !rc.isError);
+    // The curved wall's poché path should have many more vertices ("L" commands)
+    // than the straight wall's, evidence the arc was tessellated + offset.
+    const countL = (s: string) => (s.match(/L /g) || []).length;
+    assert(
+      countL(rc.content[0].text) > countL(rs.content[0].text) + 10,
+      "curved wall poché should have many more vertices than the straight one"
+    );
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderFloorPlan({ spec: "not json" });
     assert(result.isError);

@@ -7,6 +7,7 @@ import {
   getPointAlongPath,
   getPerpendicular,
   getDoorcSwingArc,
+  tessellateArc,
 } from "../src/geometry/primitives.js";
 
 test("primitives.ts", async (t) => {
@@ -135,5 +136,40 @@ test("primitives.ts", async (t) => {
 
     assert(Array.isArray(arcPath));
     assert(arcPath.length >= 2);
+  });
+
+  await t.test("tessellateArc: points lie on a circle of the given radius; endpoints pinned", () => {
+    const from: [number, number] = [0, 0];
+    const to: [number, number] = [4, 0];
+    const radius = 3;
+    const pts = tessellateArc(from, to, radius, false);
+
+    assert(pts.length > 5, "arc should be densified into several segments");
+    assert.deepEqual(pts[0], from, "first point is the exact start");
+    assert.deepEqual(pts[pts.length - 1], to, "last point is the exact end");
+
+    // Recover the center from the first interior sample and verify all points
+    // are ~radius from it (consistent circle).
+    // Center is equidistant (radius) from every point; solve from from+to+mid.
+    const mid = pts[Math.floor(pts.length / 2)];
+    // Fit center by least distance check against the analytic center:
+    // chord midpoint offset by sqrt(r^2 - (c/2)^2) along the normal.
+    const cx = 2; // chord midpoint x
+    const h = Math.sqrt(radius * radius - 4); // sqrt(9-4)
+    const center: [number, number] = [cx, -h]; // clockwise=false → below? verify by distance
+    const distOK = (c: [number, number]) =>
+      pts.every((p) => Math.abs(Math.hypot(p[0] - c[0], p[1] - c[1]) - radius) < 0.05);
+    const centerAlt: [number, number] = [cx, h];
+    assert(
+      distOK(center) || distOK(centerAlt),
+      "every tessellated point should be ~radius from a single center"
+    );
+    // Sanity: the mid point bulges off the chord (not collinear).
+    assert(Math.abs(mid[1]) > 0.1, "arc should bulge off the straight chord");
+  });
+
+  await t.test("tessellateArc: impossible radius (< half chord) falls back to the chord", () => {
+    const pts = tessellateArc([0, 0], [10, 0], 1, false);
+    assert.equal(pts.length, 2, "should fall back to a straight 2-point chord");
   });
 });

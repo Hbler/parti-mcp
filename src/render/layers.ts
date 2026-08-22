@@ -17,6 +17,7 @@ export const LayerIds = {
   // Floor plan layers
   FLOOR_SLAB: "A-FLOR",
   WALLS: "A-WALL",
+  COLUMNS: "S-COLS",
   GLAZING: "A-GLAZ",
   DOORS: "A-DOOR",
   STAIRS: "A-STRS",
@@ -66,6 +67,7 @@ export function getLayerOrder(): string[] {
     LayerIds.BARRIERS,
     LayerIds.BUILDINGS,
     LayerIds.WALLS,
+    LayerIds.COLUMNS,
     LayerIds.GLAZING,
     LayerIds.DOORS,
     LayerIds.STAIRS,

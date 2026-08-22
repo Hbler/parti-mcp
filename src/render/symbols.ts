@@ -595,3 +595,48 @@ export function renderLadder(
   parts.push("</g>");
   return parts.join("\n");
 }
+
+
+/**
+ * Render a column / pier / isolated masonry pad as its plan footprint filled
+ * with poché or a material hatch, heavy outline. `fill` is pre-resolved by the
+ * caller (a material-hatch url(#...) or a solid poché color).
+ *  - square:      size × size, centered on position
+ *  - rectangular: width × depth, centered
+ *  - round:       diameter = size, centered
+ */
+export function renderColumn(
+  position: Coordinate,
+  shape: "square" | "rectangular" | "round",
+  dims: { size?: number; width?: number; depth?: number },
+  fill: string,
+  scale: string,
+  unit: Unit,
+  theme: Theme
+): string {
+  const palette = getTheme(theme);
+  const lw = getLineweight("heavy", scale, unit);
+  const [cx, cy] = position;
+  const parts: string[] = ['<g id="column">'];
+
+  if (shape === "round") {
+    const r = (dims.size ?? 0.3) / 2;
+    parts.push(circleToSvg(cx, cy, r, fill, palette.ink, lw));
+  } else {
+    const w = shape === "rectangular" ? dims.width ?? 0.3 : dims.size ?? 0.3;
+    const d = shape === "rectangular" ? dims.depth ?? 0.3 : dims.size ?? 0.3;
+    const hw = w / 2;
+    const hd = d / 2;
+    const rectPath = [
+      [cx - hw, cy - hd],
+      [cx + hw, cy - hd],
+      [cx + hw, cy + hd],
+      [cx - hw, cy + hd],
+      [cx - hw, cy - hd],
+    ] as Coordinate[];
+    parts.push(pathToSvg(polylineToSvg(rectPath) + " Z", fill, palette.ink, lw));
+  }
+
+  parts.push("</g>");
+  return parts.join("\n");
+}
