@@ -1,0 +1,125 @@
+{
+  "unit": "m",
+  "scale": "1:100",
+  "theme": "blueprint",
+  "titleBlock": {
+    "title": "Office Building - Level 2",
+    "drawingNumber": "O-002",
+    "date": "2025-01-21",
+    "project": "Commercial Example",
+    "northAngle": 0
+  },
+  "floors": [
+    {
+      "id": "level-2",
+      "level": 2,
+      "label": "Level 2",
+      "outline": [[0, 0], [20, 0], [20, 14], [0, 14]],
+      "walls": [
+        { "id": "ext-north", "path": [[0, 0.2], [20, 0.2]], "thickness": 0.4, "material": "concrete" },
+        { "id": "ext-south", "path": [[0, 13.8], [20, 13.8]], "thickness": 0.4, "material": "concrete" },
+        { "id": "ext-west", "path": [[0.2, 0], [0.2, 14]], "thickness": 0.4, "material": "concrete" },
+        { "id": "ext-east", "path": [[19.8, 0], [19.8, 14]], "thickness": 0.4, "material": "concrete" },
+
+        { "id": "corr-top", "path": [[0.2, 6.0], [19.8, 6.0]], "thickness": 0.2, "material": "concrete" },
+        { "id": "corr-bottom", "path": [[0.2, 8.0], [19.8, 8.0]], "thickness": 0.2, "material": "concrete" },
+
+        { "id": "core-west", "path": [[8.0, 0.2], [8.0, 6.0]], "thickness": 0.2, "material": "concrete" },
+        { "id": "core-east", "path": [[13.0, 0.2], [13.0, 6.0]], "thickness": 0.2, "material": "concrete" },
+        { "id": "core-mid", "path": [[10.5, 0.2], [10.5, 6.0]], "thickness": 0.2, "material": "concrete" },
+
+        { "id": "office-a-div", "path": [[13.0, 0.2], [20, 0.2]], "thickness": 0.2, "material": "concrete" },
+
+        { "id": "rr-div", "path": [[7.0, 8.0], [7.0, 13.8]], "thickness": 0.2, "material": "concrete" },
+        { "id": "rr-mid", "path": [[9.5, 8.0], [9.5, 13.8]], "thickness": 0.2, "material": "concrete" },
+        { "id": "office-b-div", "path": [[12.0, 8.0], [12.0, 13.8]], "thickness": 0.2, "material": "concrete" }
+      ],
+      "rooms": [
+        {
+          "id": "open-office",
+          "polygon": [[0.4, 0.4], [7.9, 0.4], [7.9, 5.9], [0.4, 5.9]],
+          "roomType": "other",
+          "label": "Open Office"
+        },
+        {
+          "id": "core",
+          "polygon": [[8.1, 0.4], [12.9, 0.4], [12.9, 5.9], [8.1, 5.9]],
+          "roomType": "circulation",
+          "label": "Core"
+        },
+        {
+          "id": "office-a",
+          "polygon": [[13.1, 0.4], [19.6, 0.4], [19.6, 5.9], [13.1, 5.9]],
+          "roomType": "other",
+          "label": "Office A"
+        },
+        {
+          "id": "corridor",
+          "polygon": [[0.4, 6.1], [19.6, 6.1], [19.6, 7.9], [0.4, 7.9]],
+          "roomType": "hallway",
+          "label": "Corridor"
+        },
+        {
+          "id": "meeting",
+          "polygon": [[0.4, 8.1], [6.9, 8.1], [6.9, 13.6], [0.4, 13.6]],
+          "roomType": "other",
+          "label": "Meeting Room"
+        },
+        {
+          "id": "wc-m",
+          "polygon": [[7.1, 8.1], [9.4, 8.1], [9.4, 13.6], [7.1, 13.6]],
+          "roomType": "bathroom",
+          "label": "WC (M)"
+        },
+        {
+          "id": "wc-w",
+          "polygon": [[9.6, 8.1], [11.9, 8.1], [11.9, 13.6], [9.6, 13.6]],
+          "roomType": "bathroom",
+          "label": "WC (W)"
+        },
+        {
+          "id": "office-b",
+          "polygon": [[12.1, 8.1], [19.6, 8.1], [19.6, 13.6], [12.1, 13.6]],
+          "roomType": "other",
+          "label": "Office B"
+        }
+      ],
+      "openings": [
+        { "id": "office-open-door", "wallId": "corr-top", "positionAlongWall": 0.2, "width": 1.2, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "office-a-door", "wallId": "corr-top", "positionAlongWall": 0.83, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "core-door", "wallId": "corr-top", "positionAlongWall": 0.53, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "meeting-door", "wallId": "corr-bottom", "positionAlongWall": 0.18, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "wcm-door", "wallId": "corr-bottom", "positionAlongWall": 0.41, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "wcw-door", "wallId": "corr-bottom", "positionAlongWall": 0.54, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "officeb-door", "wallId": "corr-bottom", "positionAlongWall": 0.8, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "right" },
+
+        { "id": "office-win-1", "wallId": "ext-north", "positionAlongWall": 0.2, "width": 2.0, "type": "window" },
+        { "id": "office-win-2", "wallId": "ext-north", "positionAlongWall": 0.85, "width": 2.0, "type": "window" },
+        { "id": "office-win-w", "wallId": "ext-west", "positionAlongWall": 0.25, "width": 2.0, "type": "window" },
+        { "id": "officeb-win-e", "wallId": "ext-east", "positionAlongWall": 0.78, "width": 2.0, "type": "window" },
+        { "id": "meeting-win-w", "wallId": "ext-west", "positionAlongWall": 0.78, "width": 2.0, "type": "window" },
+        { "id": "officeb-win-s", "wallId": "ext-south", "positionAlongWall": 0.8, "width": 2.0, "type": "window" }
+      ],
+      "elevators": [
+        { "id": "elev-1", "footprint": [[8.4, 0.6], [10.3, 0.6], [10.3, 3.0], [8.4, 3.0]], "label": "ELEV" }
+      ],
+      "stairs": [
+        {
+          "id": "core-stair",
+          "footprint": [[10.7, 0.6], [12.7, 0.6], [12.7, 5.7], [10.7, 5.7]],
+          "run": [[11.7, 0.9], [11.7, 5.4]],
+          "treads": 14,
+          "direction": "down"
+        }
+      ],
+      "columns": [
+        { "id": "col-1", "position": [8.0, 6.0], "shape": "square", "size": 0.4, "material": "concrete" },
+        { "id": "col-2", "position": [13.0, 6.0], "shape": "square", "size": 0.4, "material": "concrete" }
+      ],
+      "dimensions": [
+        { "from": [0, 0], "to": [20, 0], "offset": -1.0, "textOverride": "20.00 m" },
+        { "from": [0, 0], "to": [0, 14], "offset": 1.0, "textOverride": "14.00 m" }
+      ]
+    }
+  ]
+}

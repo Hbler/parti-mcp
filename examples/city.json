@@ -1,0 +1,42 @@
+{
+  "unit": "m",
+  "scale": "1:500",
+  "theme": "blueprint",
+  "titleBlock": {
+    "title": "Downtown Blocks",
+    "drawingNumber": "U-001",
+    "date": "2025-01-21",
+    "project": "City Site Plan",
+    "northAngle": 0
+  },
+  "roads": [
+    { "id": "main-st", "path": [[-5, 25], [125, 25]], "width": 12, "type": "arterial" },
+    { "id": "market-st", "path": [[-5, 60], [125, 60]], "width": 10, "type": "local" },
+    { "id": "1st-ave", "path": [[35, -5], [35, 95]], "width": 10, "type": "local" },
+    { "id": "2nd-ave", "path": [[80, -5], [80, 95]], "width": 10, "type": "local" }
+  ],
+  "buildings": [
+    { "id": "b-nw", "footprint": [[6, 6], [30, 6], [30, 19], [6, 19]], "label": "City Hall", "floors": 4 },
+    { "id": "b-nm", "footprint": [[40, 6], [75, 6], [75, 19], [40, 19]], "label": "Offices", "floors": 8 },
+    { "id": "b-ne", "footprint": [[85, 6], [114, 6], [114, 19], [85, 19]], "label": "Hotel", "floors": 10 },
+
+    { "id": "b-mw", "footprint": [[6, 31], [30, 31], [30, 54], [6, 54]], "label": "Library", "floors": 3 },
+    { "id": "b-me", "footprint": [[85, 31], [114, 31], [114, 54], [85, 54]], "label": "Mixed-Use", "floors": 6 },
+
+    { "id": "b-sw", "footprint": [[6, 66], [30, 66], [30, 84], [6, 84]], "label": "Retail", "floors": 2 },
+    { "id": "b-sm", "footprint": [[40, 66], [75, 66], [75, 84], [40, 84]], "label": "Apartments", "floors": 5 },
+    { "id": "b-se", "footprint": [[85, 66], [114, 66], [114, 84], [85, 84]], "label": "Parking", "floors": 3 }
+  ],
+  "greenSpaces": [
+    { "id": "plaza", "polygon": [[40, 31], [75, 31], [75, 54], [40, 54]], "landscapeType": "park" }
+  ],
+  "pavedAreas": [
+    { "id": "plaza-walk", "polygon": [[52, 31], [63, 31], [63, 54], [52, 54]], "surface": "pavers" }
+  ],
+  "trees": [
+    { "id": "t1", "position": [45, 36], "radius": 1.5, "species": "oak" },
+    { "id": "t2", "position": [70, 36], "radius": 1.5, "species": "oak" },
+    { "id": "t3", "position": [45, 49], "radius": 1.5, "species": "oak" },
+    { "id": "t4", "position": [70, 49], "radius": 1.5, "species": "oak" }
+  ]
+}
