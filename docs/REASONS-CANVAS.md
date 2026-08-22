@@ -54,6 +54,13 @@ The floor plan is a **2D horizontal cut at a fixed height** with a walls + rooms
 
 These are honest boundaries a caller should design within (or route around by choosing the closest supported representation).
 
+### How the contract reaches the caller (server discovery surface)
+
+The caller is an LLM that never sees this repo — so everything above (field shapes, conventions, the coherence contract, the capability boundary) must reach it **over the MCP protocol**, or it is invisible. Decision on the discovery surface, kept deliberately simple for now:
+- **Each tool's `inputSchema` is the real, full JSON Schema for its spec, generated from the Zod schema** (`z.toJSONSchema(FloorPlanSpecSchema / SiteSpecSchema)`), not a `{ spec: object }` stub. Generating it from Zod means the advertised schema is the *same* source of truth the server validates against, so it cannot drift. This is the primary channel: it gives the caller every field, type, enum, and bound.
+- **The server sets an `instructions` string** (MCP `initialize` response) with the distilled, caller-facing brief: what the two tools do, the coordinate/unit conventions (2D `[x,y]`, y-down, real units + `1:N` scale, annotations in paper-mm), the **caller-owns-coherence** contract, and the **capability boundary** (no stairs/half-walls/curved walls/columns; per-material walls). Concise, because clients inject it as session context.
+- **`REASONS-CANVAS.md` is NOT shipped.** It is the internal design/rationale doc (the "why," plus status and history) for developers. Callers get the *distilled* authoring facts via schema + instructions — same facts, different document and audience. (Deferred, not now: exposing worked examples and a longer authoring guide as MCP **resources**, and prompt templates — the schema + instructions pair covers most of the benefit.)
+
 ## E — Entities
 
 Coordinates are 2D `[x, y]` in the spec's declared real `unit`, SVG-native axes (origin top-left, +x right, +y **down**), 1:1 into SVG user space (no y-flip). Every drawable entity accepts an optional **`style`** override; unset fields fall back to type + theme defaults.

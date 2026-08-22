@@ -3,9 +3,58 @@ import {
   StdioServerTransport,
 } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { initializeClipper } from "./geometry/clipper.js";
 import { handleRenderSitePlan } from "./tools/renderSitePlan.js";
 import { handleRenderFloorPlan } from "./tools/renderFloorPlan.js";
+import { FloorPlanSpecSchema } from "./schema/floorplan.js";
+import { SiteSpecSchema } from "./schema/site.js";
+
+/**
+ * Build a tool inputSchema whose `spec` property is the FULL JSON Schema for
+ * the given Zod spec — so a calling LLM sees every field, type, enum and bound,
+ * generated from the same schema the server validates against (cannot drift).
+ * `$schema` is stripped from the nested spec schema (the tool inputSchema is
+ * itself the schema; a nested dialect marker is noise).
+ */
+function buildInputSchema(specSchema: z.ZodTypeAny, specDescription: string) {
+  const jsonSchema = z.toJSONSchema(specSchema) as Record<string, unknown>;
+  delete jsonSchema["$schema"];
+  return {
+    type: "object" as const,
+    properties: {
+      spec: { ...jsonSchema, description: specDescription },
+      outputPath: {
+        type: "string",
+        description:
+          "Optional file path to write the SVG (relative to the server's allowed output/ directory). If omitted, the SVG is returned as tool content only.",
+      },
+    },
+    required: ["spec"],
+    additionalProperties: false,
+  };
+}
+
+/**
+ * Caller-facing usage brief, surfaced via the MCP `initialize` response.
+ * Distilled from the design canvas (which is NOT shipped): conventions, the
+ * caller-owns-coherence contract, and the capability boundary.
+ */
+const INSTRUCTIONS = `plan-mcp renders 2D architectural drawings as SVG from structured JSON specs. Two tools:
+- render_floor_plan(spec: FloorPlanSpec): an interior floor plan (floors, rooms, walls, door/window openings, dimensions, structural grid). Returns one SVG per floor.
+- render_site_plan(spec: SiteSpec): an exterior site plan (buildings, parcels, roads, hardscape, water, landscape, barriers, trees). Returns one SVG.
+
+Conventions (author the spec to these):
+- Coordinates are 2D [x, y] in the spec's declared real unit (mm|cm|m|ft|in). Axes are SVG-native: origin top-left, +x right, +y DOWN. No y-flip.
+- scale is a named paper scale "1:N". Annotation sizes (text, ticks, line weights) are authored in paper-mm and converted by the server; you supply real-unit geometry.
+- Rooms are polygons authored to the interior wall face (honest floor area). Walls are centerlines + thickness; the server offsets/unions them into cut poché. Openings reference a wall by wallId and sit at positionAlongWall in [0,1]; doors need hinge (start|end) + swingSide (left|right).
+- Per-element style.fill (a safe color token) highlights an element. material picks a hatch (concrete, brick, masonry, insulation, earth, wood).
+
+The server renders exactly what the spec describes — it does NOT infer, correct, or complete the design. You (the caller) own coherence: rooms must tile the floor without unintended overlaps/gaps, wall centerlines must meet at corners to enclose, doors must sit on the wall separating the spaces they join, and every room a person should reach must be reachable from an entrance through connected doors. There is NO wayfinding/reachability check; an incoherent plan renders as given. Intentional exceptions (walk-through closet, open plan) are fine.
+
+Capability boundary: plans are a 2D cut with a walls+rooms+openings vocabulary and NO vertical dimension. Not supported: stairs/ladders, half-walls/railings (render as full walls), isolated columns/piers, curved/arched walls, furniture/fixtures. Mixed wall materials on one floor ARE supported (rendered per material group).
+
+Call each tool with { spec: <object matching the tool's inputSchema> }. Determinism: an identical spec yields byte-identical SVG.`;
 
 const server = new Server(
   {
@@ -16,11 +65,16 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
+    instructions: INSTRUCTIONS,
   }
 );
 
+// Exported so tests (and callers) can assert the advertised discovery surface
+// without spawning a transport.
+export { INSTRUCTIONS };
+
 // Define the tools that this server provides
-const tools = [
+export const tools = [
   {
     name: "ping",
     description: "Responds with pong",
@@ -32,39 +86,21 @@ const tools = [
   },
   {
     name: "render_site_plan",
-    description: "Renders a site plan from a SiteSpec",
-    inputSchema: {
-      type: "object",
-      properties: {
-        spec: {
-          type: ["object", "string"],
-          description: "SiteSpec object or JSON string defining the site plan structure",
-        },
-        outputPath: {
-          type: "string",
-          description: "Optional file path to write SVG (relative to output/ directory)",
-        },
-      },
-      required: ["spec"],
-    },
+    description:
+      "Renders an exterior site plan (buildings, parcels, roads, hardscape, water, landscape, barriers, trees) from a SiteSpec. Returns one SVG. See the server instructions for conventions and the coherence contract.",
+    inputSchema: buildInputSchema(
+      SiteSpecSchema,
+      "SiteSpec object (or JSON string) defining the site plan. See this schema's properties for every field."
+    ),
   },
   {
     name: "render_floor_plan",
-    description: "Renders a floor plan from a FloorPlanSpec",
-    inputSchema: {
-      type: "object",
-      properties: {
-        spec: {
-          type: ["object", "string"],
-          description: "FloorPlanSpec object or JSON string defining the floor plan structure",
-        },
-        outputPath: {
-          type: "string",
-          description: "Optional file path to write SVG (relative to output/ directory)",
-        },
-      },
-      required: ["spec"],
-    },
+    description:
+      "Renders an interior floor plan (floors, rooms, walls, door/window openings, dimensions, structural grid) from a FloorPlanSpec. Returns one SVG per floor. See the server instructions for conventions and the coherence contract.",
+    inputSchema: buildInputSchema(
+      FloorPlanSpecSchema,
+      "FloorPlanSpec object (or JSON string) defining the floor plan. See this schema's properties for every field."
+    ),
   },
 ];
 
@@ -115,4 +151,8 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch(console.error);
+// Only start the stdio server when run as the entry point, so importing this
+// module (e.g. from a test asserting `tools`/`INSTRUCTIONS`) has no side effect.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(console.error);
+}
