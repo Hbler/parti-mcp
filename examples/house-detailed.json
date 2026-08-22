@@ -1,0 +1,95 @@
+{
+  "unit": "m",
+  "scale": "1:50",
+  "theme": "blueprint",
+  "titleBlock": {
+    "title": "Two-Bedroom House",
+    "drawingNumber": "A-004",
+    "date": "2025-01-21",
+    "project": "Detailed House Example",
+    "northAngle": 0
+  },
+  "floors": [
+    {
+      "id": "floor-plan",
+      "level": 0,
+      "label": "Floor Plan",
+      "outline": [[0, 0], [12, 0], [12, 9], [0, 9]],
+      "walls": [
+        { "id": "ext-north", "path": [[0, 0.15], [12, 0.15]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-south", "path": [[0, 8.85], [12, 8.85]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-west", "path": [[0.15, 0], [0.15, 9]], "thickness": 0.3, "material": "brick" },
+        { "id": "ext-east", "path": [[11.85, 0], [11.85, 9]], "thickness": 0.3, "material": "brick" },
+
+        { "id": "hall-top", "path": [[0.15, 3.9], [11.85, 3.9]], "thickness": 0.15, "material": "concrete" },
+        { "id": "hall-bottom", "path": [[0.15, 5.1], [11.85, 5.1]], "thickness": 0.15, "material": "concrete" },
+
+        { "id": "north-divider", "path": [[5.55, 0.15], [5.55, 3.9]], "thickness": 0.15, "material": "concrete" },
+
+        { "id": "south-div-1", "path": [[4.15, 5.1], [4.15, 8.85]], "thickness": 0.15, "material": "concrete" },
+        { "id": "south-div-2", "path": [[7.15, 5.1], [7.15, 8.85]], "thickness": 0.15, "material": "concrete" }
+      ],
+      "rooms": [
+        {
+          "id": "living",
+          "polygon": [[0.3, 0.3], [5.475, 0.3], [5.475, 3.825], [0.3, 3.825]],
+          "roomType": "living",
+          "label": "Living Room",
+          "style": { "fill": "#E8F4F8" }
+        },
+        {
+          "id": "kitchen",
+          "polygon": [[5.625, 0.3], [11.7, 0.3], [11.7, 3.825], [5.625, 3.825]],
+          "roomType": "kitchen",
+          "label": "Kitchen"
+        },
+        {
+          "id": "hall",
+          "polygon": [[0.3, 3.975], [11.7, 3.975], [11.7, 5.025], [0.3, 5.025]],
+          "roomType": "hallway",
+          "label": "Hall"
+        },
+        {
+          "id": "bed-1",
+          "polygon": [[0.3, 5.175], [4.075, 5.175], [4.075, 8.7], [0.3, 8.7]],
+          "roomType": "bedroom",
+          "label": "Bedroom 1"
+        },
+        {
+          "id": "bathroom",
+          "polygon": [[4.225, 5.175], [7.075, 5.175], [7.075, 8.7], [4.225, 8.7]],
+          "roomType": "bathroom",
+          "label": "Bathroom"
+        },
+        {
+          "id": "bed-2",
+          "polygon": [[7.225, 5.175], [11.7, 5.175], [11.7, 8.7], [7.225, 8.7]],
+          "roomType": "bedroom",
+          "label": "Bedroom 2"
+        }
+      ],
+      "openings": [
+        { "id": "front-door", "wallId": "ext-east", "positionAlongWall": 0.5, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "left" },
+
+        { "id": "living-door", "wallId": "hall-top", "positionAlongWall": 0.22, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "kitchen-door", "wallId": "hall-top", "positionAlongWall": 0.72, "width": 0.9, "type": "door", "hinge": "end", "swingSide": "right" },
+
+        { "id": "bed1-door", "wallId": "hall-bottom", "positionAlongWall": 0.18, "width": 0.85, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "bath-door", "wallId": "hall-bottom", "positionAlongWall": 0.47, "width": 0.75, "type": "door", "hinge": "start", "swingSide": "left" },
+        { "id": "bed2-door", "wallId": "hall-bottom", "positionAlongWall": 0.8, "width": 0.85, "type": "door", "hinge": "end", "swingSide": "right" },
+
+        { "id": "living-win-w", "wallId": "ext-west", "positionAlongWall": 0.22, "width": 1.6, "type": "window" },
+        { "id": "living-win-n", "wallId": "ext-north", "positionAlongWall": 0.22, "width": 1.4, "type": "window" },
+        { "id": "kitchen-win-n", "wallId": "ext-north", "positionAlongWall": 0.72, "width": 1.4, "type": "window" },
+        { "id": "bed1-win-w", "wallId": "ext-west", "positionAlongWall": 0.78, "width": 1.4, "type": "window" },
+        { "id": "bed1-win-s", "wallId": "ext-south", "positionAlongWall": 0.18, "width": 1.2, "type": "window" },
+        { "id": "bath-win-s", "wallId": "ext-south", "positionAlongWall": 0.47, "width": 0.7, "type": "window" },
+        { "id": "bed2-win-s", "wallId": "ext-south", "positionAlongWall": 0.8, "width": 1.4, "type": "window" }
+      ],
+      "dimensions": [
+        { "from": [0, 0], "to": [12, 0], "offset": -0.8, "textOverride": "12.00 m" },
+        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
+      ]
+    }
+  ]
+}
