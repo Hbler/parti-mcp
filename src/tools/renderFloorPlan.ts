@@ -62,6 +62,15 @@ export async function handleRenderFloorPlan(
 
     const validSpec = validation.data;
 
+    // Referential integrity (Tier 1): every opening must reference a wall that
+    // exists in the SAME floor. The Safeguards canvas promises this is rejected
+    // "before geometry"; without it a dangling wallId was silently skipped,
+    // dropping the opening with no signal to the caller.
+    const refError = checkReferentialIntegrity(validSpec);
+    if (refError) {
+      return createError(refError);
+    }
+
     // Render each floor as separate SVG
     const svgStrings: string[] = [];
     for (const floor of validSpec.floors) {
@@ -107,32 +116,19 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
   let wallPoché: Polygon[] = [];
 
   if (floor.walls && floor.walls.length > 0) {
-    // Step 1: Offset each wall centerline to create bands
-    const wallBands: Polygon[] = [];
-    for (const wall of floor.walls) {
-      const bands = offsetCenterline(clipper, wall.path, wall.thickness);
-      wallBands.push(...bands);
-    }
-
-    // Step 2: Union all wall bands into one merged polygon
-    wallPoché = unionPolygons(clipper, wallBands);
-
-    // Step 3: Cut openings from the merged wall poché
+    // Build opening cutters once (an opening belongs to one wall, but the cut
+    // is purely geometric; cutting every material group by all cutters means
+    // an opening that lands on a material boundary cleanly cuts both groups).
+    const openingCutters: Polygon[] = [];
     if (floor.openings && floor.openings.length > 0) {
-      const openingCutters: Polygon[] = [];
-
       for (const opening of floor.openings) {
-        // Find the wall this opening is in
         const wall = floor.walls.find((w) => w.id === opening.wallId);
         if (!wall) continue;
 
-        // Compute opening bounds (rectangle oriented to the wall, not axis-aligned)
         const openingPoint = getPointAlongPath(
           wall.path,
           opening.positionAlongWall
         );
-
-        // Get perpendicular vector to wall at this point (normal to wall)
         const perpPoint = getPerpendicular(wall.path, opening.positionAlongWall, 1);
         const perpVec = [
           perpPoint[0] - openingPoint[0],
@@ -140,15 +136,12 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
         ];
         const perpLen = Math.sqrt(perpVec[0] * perpVec[0] + perpVec[1] * perpVec[1]);
         const perpUnit = perpLen > 0 ? [perpVec[0] / perpLen, perpVec[1] / perpLen] : [0, 1];
-
-        // Wall direction is 90° rotation of perpendicular
         const wallUnit = [perpUnit[1], -perpUnit[0]];
 
-        // Build cutter rectangle in wall-aligned coordinates
         const halfWidth = opening.width / 2;
         const halfThickness = (wall.thickness * 1.5) / 2;
 
-        const cutter: Polygon = [
+        openingCutters.push([
           [
             openingPoint[0] - wallUnit[0] * halfWidth - perpUnit[0] * halfThickness,
             openingPoint[1] - wallUnit[1] * halfWidth - perpUnit[1] * halfThickness,
@@ -165,33 +158,58 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
             openingPoint[0] - wallUnit[0] * halfWidth + perpUnit[0] * halfThickness,
             openingPoint[1] - wallUnit[1] * halfWidth + perpUnit[1] * halfThickness,
           ],
-        ];
-
-        openingCutters.push(cutter);
-      }
-
-      // Cut all openings
-      if (openingCutters.length > 0) {
-        wallPoché = wallPoché.flatMap((poly) =>
-          differencePolygons(clipper, poly, openingCutters)
-        );
+        ]);
       }
     }
 
-    // Step 4: Render the merged wall poché (single outline, no interior seams)
-    const material = floor.walls[0]?.material || "solid";
-    const patternId = getMaterialPatternId(material);
-    const fillUrl = patternId !== "none" ? `url(#${patternId})` : palette.pochéFill;
+    // Group walls by material so each material renders its own hatch. Walls of
+    // the SAME material still union together (junctions within a material are
+    // seamless); a seam between two DIFFERENT materials is correct — it is a
+    // material-change line. Deterministic group order: first-seen order.
+    const materialOrder: string[] = [];
+    const wallsByMaterial = new Map<string, typeof floor.walls>();
+    for (const wall of floor.walls) {
+      const material = wall.material || "solid";
+      if (!wallsByMaterial.has(material)) {
+        wallsByMaterial.set(material, []);
+        materialOrder.push(material);
+      }
+      wallsByMaterial.get(material)!.push(wall);
+    }
 
-    for (const wallPoly of wallPoché) {
-      const pathData = polygonToSvg(wallPoly);
-      const svg = pathToSvg(
-        pathData,
-        fillUrl,
-        palette.ink,
-        getLineweight("heavy", spec.scale, spec.unit)
-      );
-      layers["A-WALL"].push(svg);
+    for (const material of materialOrder) {
+      const group = wallsByMaterial.get(material)!;
+
+      // Offset + union this material's walls into one poché.
+      const bands: Polygon[] = [];
+      for (const wall of group) {
+        bands.push(...offsetCenterline(clipper, wall.path, wall.thickness));
+      }
+      let groupPoché = unionPolygons(clipper, bands);
+
+      // Cut all openings from this group's poché.
+      if (openingCutters.length > 0) {
+        groupPoché = groupPoché.flatMap((poly) =>
+          differencePolygons(clipper, poly, openingCutters)
+        );
+      }
+
+      wallPoché.push(...groupPoché);
+
+      // Render this material group's poché with its own hatch.
+      const patternId = getMaterialPatternId(material);
+      const fillUrl = patternId !== "none" ? `url(#${patternId})` : palette.pochéFill;
+      for (const wallPoly of groupPoché) {
+        const pathData = polygonToSvg(wallPoly);
+        layers["A-WALL"].push(
+          pathToSvg(
+            pathData,
+            fillUrl,
+            palette.ink,
+            getLineweight("heavy", spec.scale, spec.unit)
+          )
+        );
+      }
     }
   }
 
@@ -407,6 +425,29 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
 
   // Use generateSheet to wrap content with proper layout
   return generateSheet(svgContent, bbox, spec, theme);
+}
+
+/**
+ * Referential integrity check: every Opening.wallId must reference a Wall that
+ * exists within the same Floor. Returns an error message string on the first
+ * violation, or null if the spec is clean. This is a cross-array semantic
+ * constraint Zod does not express, so it lives here and runs before geometry.
+ */
+function checkReferentialIntegrity(spec: FloorPlanSpec): string | null {
+  for (const floor of spec.floors) {
+    if (!floor.openings || floor.openings.length === 0) continue;
+    const wallIds = new Set((floor.walls ?? []).map((w) => w.id));
+    for (const opening of floor.openings) {
+      if (!wallIds.has(opening.wallId)) {
+        return (
+          `Opening "${opening.id}" references wallId "${opening.wallId}", ` +
+          `which does not exist in floor "${floor.id}". Every opening must ` +
+          `reference a wall in the same floor.`
+        );
+      }
+    }
+  }
+  return null;
 }
 
 function createError(message: string): ToolResult {

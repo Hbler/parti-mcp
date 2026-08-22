@@ -218,6 +218,65 @@ test("renderFloorPlan / Operation 11", async (t) => {
     const result = await handleRenderFloorPlan({ spec: "not json" });
     assert(result.isError);
   });
+
+  await t.test("rejects an opening referencing a nonexistent wall (referential integrity)", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          walls: [
+            { id: "wall1", path: [[0, 0], [10, 0]], thickness: 0.3 },
+          ],
+          openings: [
+            {
+              id: "ghost-door",
+              wallId: "does-not-exist",
+              positionAlongWall: 0.5,
+              width: 0.9,
+              type: "door",
+              hinge: "start",
+              swingSide: "left",
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = await handleRenderFloorPlan({ spec });
+    assert(result.isError, "Should reject a dangling wallId rather than silently skip it");
+    assert(
+      result.content[0].text.includes("does-not-exist"),
+      "Error should name the offending wallId"
+    );
+  });
+
+  await t.test("per-wall material: two materials on one floor produce two hatch fills", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:50",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          walls: [
+            { id: "ext", path: [[0, 0], [10, 0]], thickness: 0.3, material: "brick" },
+            { id: "int", path: [[0, 5], [10, 5]], thickness: 0.15, material: "concrete" },
+          ],
+        },
+      ],
+    };
+
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    const svg = result.content[0].text;
+    // Both material hatches must be USED as fills (defs always emit every
+    // pattern, so assert on url(#...) usage, not mere presence of the def).
+    assert(svg.includes("url(#hatch-brick)"), "brick hatch should fill a wall poché");
+    assert(svg.includes("url(#hatch-concrete)"), "concrete hatch should fill a wall poché");
+  });
 });
 
 // Operation 12c: Integration test for two-floor.json example
