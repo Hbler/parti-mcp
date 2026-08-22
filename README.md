@@ -1,4 +1,4 @@
-# plan-mcp v2
+# parti-mcp v2
 
 An MCP server that renders architectural floor plans and site plans as SVG in a blueprint aesthetic, following real architectural drawing conventions. Built with precision planar geometry (Clipper WASM + flatten-js).
 
@@ -7,6 +7,9 @@ An MCP server that renders architectural floor plans and site plans as SVG in a 
 - **Precision geometry engine**: Uses Clipper (js-angusj-clipper) for robust planar geometry operations with integer-precision scaling
 - **Analytical primitives**: flatten-js for centroids, point-along-path, perpendiculars, and arc geometry
 - **Architectural rendering**: Proper wall junctions (offset→union→cut→stroke), door/window symbols, room labels with area calculations
+- **Vertical circulation & structure**: Stairs (tread lines + UP/DN arrow + break line), ladders, elevators (shaft symbol), columns/piers with material poché
+- **Wall vocabulary**: Straight or circular-arc (curved) walls, full-height or low (half/pony/knee) walls, and mixed materials on a single floor (rendered per material group)
+- **Legible labels**: Room and site labels render on a background "safe area" halo so busy hatching never bleeds through the text
 - **Multi-theme output**: Blueprint (dark) and Whiteprint (light) themes with theme-aware text contrast
 - **Multi-scale support**: Automatic scaling from paper millimeters to model units (1:100, 1:50, 1:200, etc.)
 - **Multi-floor plans**: Render each floor separately or batch process buildings
@@ -112,10 +115,31 @@ Single-floor residential plan:
 ### Multi-Floor (two-floor.json)
 
 Two-story residential:
-- Ground floor: Living Room, Kitchen, Bedroom, Bathroom
-- First floor: Bedrooms, Bathroom, Landing
+- Ground floor: Living Room, Kitchen/Dining, Entry Hall, WC
+- First floor: bedrooms, bathroom, landing
+- A stacked stair (UP on the ground floor, DN on the first) positioned clear of door swings
+- Columns placed on the structural grid
 - Interior partitions on both levels
-- 15m × 12m per floor
+
+### Detailed House (house-detailed.json)
+
+Exercises the fuller vocabulary: a low (knee) wall, stairs running to an upper level, and a loft-access ladder.
+
+### Curved Wall (curved-wall.json)
+
+Minimal demo of a curved wall (a shallow bay window authored as a two-point wall with `curve`) and a round column.
+
+### Office Building — Level 2 (office.json)
+
+Commercial floor plate: an elevator + stair core (single lobby, one corridor door), a central corridor, two restrooms opening onto the corridor, open-plan and cellular offices, and columns on grid.
+
+### City / Figure-Ground (city.json)
+
+Urban site plan at 1:500: labeled building footprints, a street grid, and a park plaza.
+
+### Whiteprint (house-whiteprint.json)
+
+The bungalow rendered in the light (whiteprint) theme, with one highlighted room demonstrating per-element `style.fill`.
 
 ### Site Plan (site-plan.json)
 
@@ -164,10 +188,15 @@ export async function handleRenderFloorPlan(input: {
 - `titleBlock`: Optional title block metadata
 - `floors[]`: Array of floor specs, each with:
   - `outline`: Boundary polygon
-  - `walls[]`: Wall polylines with thickness
-  - `rooms[]`: Room polygons with type and optional custom fill
-  - `openings[]`: Doors/windows with position and orientation
+  - `walls[]`: Wall centerlines with `thickness` and optional `material` (mixed materials on one floor render per group). Optional `heightClass`: `"full"` (default, solid cut poché) or `"low"` (half/pony/knee wall or railing below the cut plane → dashed outline, no fill). A wall may curve: give a two-point `path` plus `curve: { radius, clockwise }` and the server tessellates a circular arc that unions/cuts like a straight wall.
+  - `rooms[]`: Room polygons with type and optional custom fill (labels render on a legibility halo)
+  - `openings[]`: Doors/windows referencing a wall by `wallId` at `positionAlongWall` in [0,1]; doors need `hinge` (start|end) + `swingSide` (left|right)
+  - `stairs[]`: Straight-run stairs — `footprint`, `run` [bottom, top] travel centerline, `treads` count, `direction` (up|down)
+  - `ladders[]`: `path` [start, end] + `width` (rails + rungs)
+  - `elevators[]`: `footprint` (shaft rectangle) + optional `label` (X-in-box shaft with inset car)
+  - `columns[]`: `position`, `shape` (square|rectangular|round), `size` or `width`+`depth`, optional `material` (poché footprint — place on grid intersections)
   - `dimensions[]`: Annotation lines with text
+  - `grid`: Optional structural grid (labeled bubbles)
 
 **Output**: SVG at `outputPath` or returned as text
 
@@ -218,7 +247,7 @@ All coordinates are in **model units** (meters, feet, mm depending on spec).
 - Poché fill: Light gray (`#D3D3D3`)
 
 ### Per-element fill and label contrast
-Any drawable entity may set `style.fill` to highlight it in a specific color, regardless of theme. Room labels don't just use the theme's `ink` color unconditionally — `getContrastingTextColor` picks whichever of the theme's `ink` or `background` color has the greater luminance distance from the room's actual fill, so a label stays legible whether the room uses the theme default or a custom highlight color, in either theme.
+Any drawable entity may set `style.fill` to highlight it in a specific color, regardless of theme. Room and site labels render on a background "safe area" halo (a card behind the text) so that dense floor/site hatching never renders through the label. On top of the halo, `getContrastingTextColor` picks whichever of the theme's `ink` or `background` color has the greater luminance distance from the room's actual fill, so a label stays legible whether the room uses the theme default or a custom highlight color, in either theme.
 
 ## Technical Details
 
@@ -238,6 +267,8 @@ Path (centerline) + thickness → Solid band polygon
 3. Difference the door/window opening cutters from that merged polygon
 4. Stroke the single resulting boundary once — never per-wall
 ```
+
+Walls are grouped by `material` and each group runs through this pipeline independently, so a floor can mix materials (each hatched on its own). Each group's cut poché is emitted as a **single `fill-rule="evenodd"` path**: when interior walls form a connected loop, the union returns the enclosed room void as a separate opposite-winding subpath, and even-odd makes that void a *hole* rather than a filled polygon — otherwise the room interior would be flooded with the wall hatch.
 
 **Rooms are author-supplied, not derived.** A `Room.polygon` is authored directly in the spec to the room's interior wall face — it is not extracted or computed from the wall geometry. This keeps the computed area (`getPolygonArea`) honest as usable floor area, and means room fill always meets wall poché with no gap as long as the spec author places the room polygon at the wall's inner face. Label position is the room polygon's centroid (`getCentroid`).
 
@@ -272,7 +303,8 @@ Hatches are defined as SVG `<pattern>` elements (`patternUnits="userSpaceOnUse"`
 
 - All polylines are treated as open paths; closed loops require explicit endpoint
 - Text is positioned at geometric center; complex labels may benefit from manual adjustment
-- Curved walls use straight line segments (no Bezier support yet)
+- Curved walls are supported as **circular arcs only** (a two-point path plus `curve: { radius, clockwise }`, tessellated before offsetting); non-circular curves (splines, ellipses) are not supported
+- Plans are a single 2D horizontal cut — there is no continuous vertical model. Furniture/fixtures and MEP are out of scope
 - High-precision geometry relies on integer arithmetic; very large drawings may lose precision
 
 ## Contributing
@@ -281,7 +313,7 @@ All code follows TypeScript strict mode. Changes must:
 1. Pass `npm run build` (TypeScript check)
 2. Pass `npm test` (full test suite)
 3. Update relevant tests if schemas or rendering change
-4. For new examples, render and visually verify via headless Chrome
+4. For new examples, render to `output/examples/` and visually verify (e.g. rasterize with `qlmanage -t -s 1600 -o <dir> output/examples/*.svg`)
 
 ## Version History
 
