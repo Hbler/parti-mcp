@@ -143,6 +143,20 @@ export const LadderSchema = z.object({
 export type Ladder = z.infer<typeof LadderSchema>;
 
 /**
+ * Elevator (hoistway/shaft, plan symbol).
+ * `footprint` is the shaft rectangle; the server draws the car as an inset
+ * rectangle plus an X (both diagonals) marking the shaft. Optional `label`
+ * (e.g. "ELEV").
+ */
+export const ElevatorSchema = z.object({
+  id: z.string(),
+  footprint: z.array(z.tuple([z.number(), z.number()])).min(3),
+  label: z.string().optional(),
+  style: StyleSchema.optional(),
+});
+export type Elevator = z.infer<typeof ElevatorSchema>;
+
+/**
  * Column / pier / isolated masonry pad (structural point element).
  * Drawn as its plan footprint filled with poché or a material hatch.
  *  - square:      `size` (side length)
@@ -174,6 +188,7 @@ export const FloorSchema = z.object({
   openings: z.array(OpeningSchema).optional(),
   stairs: z.array(StairSchema).optional(),
   ladders: z.array(LadderSchema).optional(),
+  elevators: z.array(ElevatorSchema).optional(),
   columns: z.array(ColumnSchema).optional(),
   dimensions: z.array(DimensionSchema).optional(),
   gridLines: z.array(GridLineSchema).optional(),

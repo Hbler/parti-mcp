@@ -11,6 +11,7 @@ import {
   escapeXml,
   estimateTextWidth,
   polylineToSvg,
+  polygonToSvg,
   lineToSvg,
   circleToSvg,
   textToSvg,
@@ -635,6 +636,68 @@ export function renderColumn(
       [cx - hw, cy - hd],
     ] as Coordinate[];
     parts.push(pathToSvg(polylineToSvg(rectPath) + " Z", fill, palette.ink, lw));
+  }
+
+  parts.push("</g>");
+  return parts.join("\n");
+}
+
+
+/**
+ * Render an elevator as the standard plan symbol: the shaft rectangle
+ * (footprint), an inset car rectangle, and an X (both diagonals) across the
+ * shaft. Fine lineweight, no poché. Optional label (e.g. "ELEV").
+ */
+export function renderElevator(
+  footprint: Coordinate[],
+  label: string | undefined,
+  scale: string,
+  unit: Unit,
+  theme: Theme
+): string {
+  const palette = getTheme(theme);
+  const mpmm = modelPerPaperMm(scale, unit);
+  const parts: string[] = ['<g id="elevator">'];
+
+  // Shaft bounding rectangle.
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of footprint) {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  }
+  const lw = getLineweight("light", scale, unit);
+  const fineLw = getLineweight("fine", scale, unit);
+
+  // Shaft outline.
+  parts.push(
+    pathToSvg(polygonToSvg([[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY]]), "none", palette.ink, lw)
+  );
+
+  // Inset car rectangle.
+  const inset = Math.min((maxX - minX), (maxY - minY)) * 0.12;
+  parts.push(
+    pathToSvg(
+      polygonToSvg([
+        [minX + inset, minY + inset],
+        [maxX - inset, minY + inset],
+        [maxX - inset, maxY - inset],
+        [minX + inset, maxY - inset],
+      ]),
+      "none",
+      palette.ink,
+      fineLw
+    )
+  );
+
+  // X diagonals across the shaft.
+  parts.push(lineToSvg(minX, minY, maxX, maxY, palette.ink, fineLw));
+  parts.push(lineToSvg(minX, maxY, maxX, minY, palette.ink, fineLw));
+
+  // Optional label near the top of the shaft.
+  if (label) {
+    parts.push(
+      textToSvg(label, (minX + maxX) / 2, minY - 1 * mpmm, 2 * mpmm, palette.ink, "middle")
+    );
   }
 
   parts.push("</g>");

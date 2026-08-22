@@ -352,6 +352,28 @@ test("renderFloorPlan / Operation 11", async (t) => {
     );
   });
 
+  await t.test("renders an elevator as an X-in-box shaft symbol", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      floors: [
+        {
+          id: "floor0",
+          level: 0,
+          elevators: [
+            { id: "e1", footprint: [[2, 2], [4, 2], [4, 4.5], [2, 4.5]], label: "ELEV" },
+          ],
+        },
+      ],
+    };
+    const result = await handleRenderFloorPlan({ spec });
+    assert(!result.isError, `Should not error: ${result.content?.[0]?.text}`);
+    const svg = result.content[0].text;
+    assert(svg.includes('id="elevator"'), "elevator group should be present");
+    assert(svg.includes("A-STRS"), "elevator should be on the A-STRS layer");
+    assert(svg.includes(">ELEV<"), "elevator label should render");
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderFloorPlan({ spec: "not json" });
     assert(result.isError);

@@ -24,7 +24,7 @@ import {
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveFill, resolveStroke, getContrastingTextColor } from "../render/theme.js";
 import { getMaterialPatternId } from "../render/defs.js";
-import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble, renderStair, renderLadder, renderColumn } from "../render/symbols.js";
+import { renderDoorSwing, renderWindowGlazing, renderDimensionString, renderGridBubble, renderStair, renderLadder, renderColumn, renderElevator } from "../render/symbols.js";
 import { generateSheet } from "../render/sheet.js";
 
 export interface ToolResult {
@@ -392,6 +392,14 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
     for (const ladder of floor.ladders) {
       layers["A-STRS"].push(
         renderLadder(ladder.path, ladder.width, spec.scale, spec.unit, theme)
+      );
+    }
+  }
+
+  if (floor.elevators && floor.elevators.length > 0) {
+    for (const elevator of floor.elevators) {
+      layers["A-STRS"].push(
+        renderElevator(elevator.footprint, elevator.label, spec.scale, spec.unit, theme)
       );
     }
   }
