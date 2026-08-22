@@ -27,7 +27,9 @@
         { "id": "north-divider", "path": [[5.55, 0.15], [5.55, 3.9]], "thickness": 0.15, "material": "concrete" },
 
         { "id": "south-div-1", "path": [[4.15, 5.1], [4.15, 8.85]], "thickness": 0.15, "material": "concrete" },
-        { "id": "south-div-2", "path": [[7.15, 5.1], [7.15, 8.85]], "thickness": 0.15, "material": "concrete" }
+        { "id": "south-div-2", "path": [[7.15, 5.1], [7.15, 8.85]], "thickness": 0.15, "material": "concrete" },
+
+        { "id": "stair-rail", "path": [[8.3, 0.5], [8.3, 3.6]], "thickness": 0.1, "heightClass": "low" }
       ],
       "rooms": [
         {
@@ -85,6 +87,22 @@
         { "id": "bed1-win-s", "wallId": "ext-south", "positionAlongWall": 0.18, "width": 1.2, "type": "window" },
         { "id": "bath-win-s", "wallId": "ext-south", "positionAlongWall": 0.47, "width": 0.7, "type": "window" },
         { "id": "bed2-win-s", "wallId": "ext-south", "positionAlongWall": 0.8, "width": 1.4, "type": "window" }
+      ],
+      "stairs": [
+        {
+          "id": "main-stair",
+          "footprint": [[8.5, 0.5], [11.4, 0.5], [11.4, 3.5], [8.5, 3.5]],
+          "run": [[8.7, 2.0], [11.2, 2.0]],
+          "treads": 12,
+          "direction": "up"
+        }
+      ],
+      "ladders": [
+        {
+          "id": "loft-ladder",
+          "path": [[10.8, 6.2], [10.8, 7.8]],
+          "width": 0.5
+        }
       ],
       "dimensions": [
         { "from": [0, 0], "to": [12, 0], "offset": -0.8, "textOverride": "12.00 m" },
