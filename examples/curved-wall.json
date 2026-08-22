@@ -32,8 +32,7 @@
           "id": "living",
           "polygon": [[0.3, 1.15], [6.7, 1.15], [6.7, 5.2], [0.3, 5.2]],
           "roomType": "living",
-          "label": "Living Room",
-          "style": { "fill": "#E8F4F8" }
+          "label": "Living Room"
         }
       ],
       "openings": [

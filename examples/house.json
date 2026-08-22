@@ -27,15 +27,15 @@
 
         { "id": "kitchen-div", "path": [[7.0, 0.15], [7.0, 7.85]], "thickness": 0.15, "material": "concrete" },
 
-        { "id": "bed-div", "path": [[3.5, 4.6], [3.5, 7.85]], "thickness": 0.15, "material": "concrete" }
+        { "id": "bed1-div", "path": [[3.0, 4.6], [3.0, 7.85]], "thickness": 0.15, "material": "concrete" },
+        { "id": "bath-div", "path": [[5.0, 4.6], [5.0, 7.85]], "thickness": 0.15, "material": "concrete" }
       ],
       "rooms": [
         {
           "id": "living",
           "polygon": [[0.3, 0.3], [6.925, 0.3], [6.925, 3.325], [0.3, 3.325]],
           "roomType": "living",
-          "label": "Living / Dining",
-          "style": { "fill": "#E8F4F8" }
+          "label": "Living / Dining"
         },
         {
           "id": "kitchen",
@@ -51,33 +51,41 @@
         },
         {
           "id": "bed-1",
-          "polygon": [[0.3, 4.675], [3.425, 4.675], [3.425, 7.7], [0.3, 7.7]],
+          "polygon": [[0.3, 4.675], [2.925, 4.675], [2.925, 7.7], [0.3, 7.7]],
           "roomType": "bedroom",
           "label": "Bedroom 1"
         },
         {
+          "id": "bathroom",
+          "polygon": [[3.075, 4.675], [4.925, 4.675], [4.925, 7.7], [3.075, 7.7]],
+          "roomType": "bathroom",
+          "label": "Bathroom"
+        },
+        {
           "id": "bed-2",
-          "polygon": [[3.575, 4.675], [6.925, 4.675], [6.925, 7.7], [3.575, 7.7]],
+          "polygon": [[5.075, 4.675], [6.925, 4.675], [6.925, 7.7], [5.075, 7.7]],
           "roomType": "bedroom",
           "label": "Bedroom 2"
         }
       ],
       "openings": [
         { "id": "front-door", "wallId": "ext-west", "positionAlongWall": 0.3, "width": 1.0, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "hall-living-door", "wallId": "hall-top", "positionAlongWall": 0.5, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "left" },
-        { "id": "kitchen-door", "wallId": "kitchen-div", "positionAlongWall": 0.25, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "bed1-door", "wallId": "hall-bottom", "positionAlongWall": 0.22, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
-        { "id": "bed2-door", "wallId": "hall-bottom", "positionAlongWall": 0.68, "width": 0.8, "type": "door", "hinge": "end", "swingSide": "left" },
+        { "id": "hall-living-door", "wallId": "hall-top", "positionAlongWall": 0.5, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "kitchen-door", "wallId": "kitchen-div", "positionAlongWall": 0.22, "width": 0.9, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bed1-door", "wallId": "hall-bottom", "positionAlongWall": 0.18, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bath-door", "wallId": "hall-bottom", "positionAlongWall": 0.44, "width": 0.7, "type": "door", "hinge": "start", "swingSide": "right" },
+        { "id": "bed2-door", "wallId": "hall-bottom", "positionAlongWall": 0.72, "width": 0.8, "type": "door", "hinge": "start", "swingSide": "right" },
 
         { "id": "living-win-n", "wallId": "ext-north", "positionAlongWall": 0.32, "width": 1.4, "type": "window" },
         { "id": "kitchen-win-n", "wallId": "ext-north", "positionAlongWall": 0.82, "width": 1.4, "type": "window" },
         { "id": "kitchen-win-e", "wallId": "ext-east", "positionAlongWall": 0.3, "width": 1.2, "type": "window" },
-        { "id": "bed1-win-s", "wallId": "ext-south", "positionAlongWall": 0.16, "width": 1.4, "type": "window" },
-        { "id": "bed2-win-s", "wallId": "ext-south", "positionAlongWall": 0.5, "width": 1.4, "type": "window" }
+        { "id": "bed1-win-s", "wallId": "ext-south", "positionAlongWall": 0.14, "width": 1.4, "type": "window" },
+        { "id": "bath-win-s", "wallId": "ext-south", "positionAlongWall": 0.36, "width": 0.8, "type": "window" },
+        { "id": "bed2-win-s", "wallId": "ext-south", "positionAlongWall": 0.54, "width": 1.4, "type": "window" }
       ],
       "dimensions": [
         { "from": [0, 0], "to": [11, 0], "offset": -0.8, "textOverride": "11.00 m" },
-        { "from": [0, 0], "to": [0, 8], "offset": -0.8, "textOverride": "8.00 m" }
+        { "from": [0, 0], "to": [0, 8], "offset": 0.8, "textOverride": "8.00 m" }
       ]
     }
   ]

@@ -30,8 +30,7 @@
           "id": "g-living",
           "polygon": [[0.3, 0.3], [5.85, 0.3], [5.85, 4.425], [0.3, 4.425]],
           "roomType": "living",
-          "label": "Living Room",
-          "style": { "fill": "#E8F4F8" }
+          "label": "Living Room"
         },
         {
           "id": "g-kitchen",
@@ -65,8 +64,8 @@
       "stairs": [
         {
           "id": "g-stair",
-          "footprint": [[6.4, 3.5], [9.4, 3.5], [9.4, 5.7], [6.4, 5.7]],
-          "run": [[6.6, 4.6], [9.2, 4.6]],
+          "footprint": [[7.9, 2.9], [9.5, 2.9], [9.5, 5.6], [7.9, 5.6]],
+          "run": [[8.7, 3.1], [8.7, 5.4]],
           "treads": 13,
           "direction": "up"
         }
@@ -77,7 +76,7 @@
       ],
       "dimensions": [
         { "from": [0, 0], "to": [10, 0], "offset": -0.8, "textOverride": "10.00 m" },
-        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
+        { "from": [0, 0], "to": [0, 9], "offset": 0.8, "textOverride": "9.00 m" }
       ],
       "gridLines": [
         { "label": "A", "from": [0.15, -1.4], "to": [0.15, 9], "bubbleEnds": "start" },
@@ -105,8 +104,7 @@
           "id": "f-bed-1",
           "polygon": [[0.3, 0.3], [5.85, 0.3], [5.85, 4.425], [0.3, 4.425]],
           "roomType": "bedroom",
-          "label": "Master Bedroom",
-          "style": { "fill": "#E8F4F8" }
+          "label": "Master Bedroom"
         },
         {
           "id": "f-bed-2",
@@ -140,8 +138,8 @@
       "stairs": [
         {
           "id": "f-stair",
-          "footprint": [[6.4, 3.5], [9.4, 3.5], [9.4, 5.7], [6.4, 5.7]],
-          "run": [[6.6, 4.6], [9.2, 4.6]],
+          "footprint": [[7.9, 2.9], [9.5, 2.9], [9.5, 5.6], [7.9, 5.6]],
+          "run": [[8.7, 3.1], [8.7, 5.4]],
           "treads": 13,
           "direction": "down"
         }
@@ -152,7 +150,7 @@
       ],
       "dimensions": [
         { "from": [0, 0], "to": [10, 0], "offset": -0.8, "textOverride": "10.00 m" },
-        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
+        { "from": [0, 0], "to": [0, 9], "offset": 0.8, "textOverride": "9.00 m" }
       ]
     }
   ]

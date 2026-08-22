@@ -36,8 +36,7 @@
           "id": "living",
           "polygon": [[0.3, 0.3], [5.475, 0.3], [5.475, 3.825], [0.3, 3.825]],
           "roomType": "living",
-          "label": "Living Room",
-          "style": { "fill": "#E8F4F8" }
+          "label": "Living Room"
         },
         {
           "id": "kitchen",
@@ -106,7 +105,7 @@
       ],
       "dimensions": [
         { "from": [0, 0], "to": [12, 0], "offset": -0.8, "textOverride": "12.00 m" },
-        { "from": [0, 0], "to": [0, 9], "offset": -0.8, "textOverride": "9.00 m" }
+        { "from": [0, 0], "to": [0, 9], "offset": 0.8, "textOverride": "9.00 m" }
       ]
     }
   ]
