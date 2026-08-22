@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   StdioServerTransport,
@@ -9,6 +10,8 @@ import { handleRenderSitePlan } from "./tools/renderSitePlan.js";
 import { handleRenderFloorPlan } from "./tools/renderFloorPlan.js";
 import { FloorPlanSpecSchema } from "./schema/floorplan.js";
 import { SiteSpecSchema } from "./schema/site.js";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 /**
  * Build a tool inputSchema whose `spec` property is the FULL JSON Schema for
@@ -155,6 +158,23 @@ async function main() {
 
 // Only start the stdio server when run as the entry point, so importing this
 // module (e.g. from a test asserting `tools`/`INSTRUCTIONS`) has no side effect.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare *realpaths* rather than raw strings: when launched through a package
+// `bin` symlink (e.g. `npx parti-mcp` → node_modules/.bin/parti-mcp), argv[1]
+// is the symlink while import.meta.url is the resolved file, so a naive
+// `import.meta.url === file://${argv[1]}` check would be false and the server
+// would silently never start.
+function isEntryPoint(): boolean {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try {
+    const thisFile = realpathSync(fileURLToPath(import.meta.url));
+    const invoked = realpathSync(argv1);
+    return thisFile === invoked;
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) {
   main().catch(console.error);
 }

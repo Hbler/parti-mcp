@@ -53,11 +53,61 @@ Both images are rendered directly by the server from the specs in [`examples/`](
 
 ## Getting Started
 
-### Installation
+### Use it as an MCP server
+
+parti-mcp is a stdio MCP server: an MCP client (Kiro, Claude Desktop, etc.) launches it and calls its tools. You don't run it by hand — you point your client's config at a command that starts it.
+
+**Run directly from GitHub (no clone, no install step):**
+
+```json
+{
+  "mcpServers": {
+    "parti-mcp": {
+      "command": "npx",
+      "args": ["-y", "github:Hbler/parti-mcp"]
+    }
+  }
+}
+```
+
+**Or, once published to npm:**
+
+```json
+{
+  "mcpServers": {
+    "parti-mcp": {
+      "command": "npx",
+      "args": ["-y", "parti-mcp"]
+    }
+  }
+}
+```
+
+Either way the client spawns the server, which exposes three tools: `render_floor_plan`, `render_site_plan`, and `ping`. The server advertises the full JSON Schema for each spec plus a usage brief in its MCP `initialize` response, so the calling model knows every field.
+
+> The package builds itself on install (a `prepare` step compiles TypeScript to `dist/`), and the compiled entry runs on plain Node — no global `tsx` needed on the consumer's machine.
+
+### Develop from source
 
 ```bash
-npm install
-npm run build
+git clone https://github.com/Hbler/parti-mcp
+cd parti-mcp
+npm install          # also builds dist/ via the prepare step
+npm start            # run the server over stdio from TypeScript source (tsx)
+npm run build        # type-check and emit dist/
+```
+
+To point an MCP client at your working copy instead of the published package:
+
+```json
+{
+  "mcpServers": {
+    "parti-mcp": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/parti-mcp/src/index.ts"]
+    }
+  }
+}
 ```
 
 ### Running Tests
@@ -71,20 +121,27 @@ Covers:
 - Schema validation
 - Rendering pipeline
 - Integration tests with real examples
-- Regression tests for known bugs (junction seams, text sizing)
+- Regression tests for known bugs (junction seams, text sizing, enclosed-room poché)
 
-### Rendering Examples
+### Rendering examples without a client
 
-All examples are in `examples/` directory. Each can be rendered via the CLI tools:
+To render the bundled examples directly (writes SVGs to `smoke-output/`):
+
+```bash
+node --import=tsx scripts/smoke-test.mjs
+```
+
+Or call a tool handler from your own script. Import the `.ts` sources with `tsx` when running from a source checkout, or the built `dist/*.js` when running against a compiled install:
 
 ```typescript
-import { handleRenderFloorPlan } from "./src/tools/renderFloorPlan.js";
-import { initializeClipper } from "./src/geometry/clipper.js";
+import { initializeClipper } from "./src/geometry/clipper.ts";
+import { handleRenderFloorPlan } from "./src/tools/renderFloorPlan.ts";
+import fs from "node:fs";
 
-await initializeClipper();
+await initializeClipper(); // required once before any render
 const spec = JSON.parse(fs.readFileSync("examples/house.json", "utf-8"));
 const result = await handleRenderFloorPlan({ spec });
-console.log(result.content[0].text); // SVG output
+console.log(result.content[0].text); // SVG output (one entry per floor)
 ```
 
 ## Example Specifications
