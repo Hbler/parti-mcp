@@ -303,8 +303,8 @@ export async function handleRenderSitePlan(input: {
 ```
 
 **Input Schema** (SiteSpec):
-- `buildings[]`: Building footprints with `label` and optional `labelOrientation` (`horizontal` | `vertical`)
-- `roads[]`: Road polylines with width
+- `buildings[]`: Building footprints with `label` and optional `labelOrientation` (`horizontal` | `vertical`). Optional `footprintCurves[]` curves the footprint: an **edge bow** `{ edge, radius, clockwise }` (a curved facade) or a **corner round** `{ corner, setbackIn?, setbackOut?, radius?, clockwise? }` (a rounded/filleted corner — give a `radius` for a tangent fillet, or `setbackIn`/`setbackOut` for a free arc; a "rounded square" is four corner entries)
+- `roads[]`: Road polylines with width; optional `curve: { radius, clockwise }` on a two-point path renders a curved carriageway. A roundabout is a composition: a **closed ring** of curved-road segments (e.g. four quarter-arcs chained around a circle) forms an open annular carriageway, with a center island drawn as a green/paved circle
 - `pavedAreas[]`: Paved polygons (driveways, parking, sidewalks, patios, decks). Optional `elevated: true` renders the area **above** water (for a deck/boardwalk/jetty over a pond or pool); optional `label` overrides the surface-derived name, `labelOrientation` rotates it
 - `greenSpaces[]`: Landscape polygons (lawn, garden, trees); optional `label`/`labelOrientation`
 - `water[]`: Water features (pools, ponds); optional `label`/`labelOrientation`
