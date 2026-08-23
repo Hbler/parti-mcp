@@ -86,6 +86,40 @@ test("renderSitePlan / Operation 9", async (t) => {
     }
   );
 
+  await t.test(
+    "CRITICAL: parallel road spurs do not bridge — the gap between them stays open (evenodd)",
+    async () => {
+      // Regression test: two parallel spurs branch off a spine and enclose a
+      // gap between them. The old code emitted each unioned path as its own
+      // SOLID fill, so the enclosed gap painted as a filled block (bridging the
+      // spurs and covering whatever was underneath). The merged carriageway
+      // must be ONE path with fill-rule="evenodd" so the gap renders as a hole.
+      const spec = {
+        unit: "m",
+        scale: "1:100",
+        roads: [
+          { id: "spine", path: [[0, 0], [0, 20]], width: 2 },   // vertical spine at x=0
+          { id: "spur-a", path: [[0, 2], [15, 2]], width: 2 },  // upper spur
+          { id: "spur-b", path: [[0, 18], [15, 18]], width: 2 },// lower spur
+          // spurs enclose a large gap (roughly x 2..15, y 4..16) that must NOT fill
+        ],
+      };
+      const result = await handleRenderSitePlan({ spec });
+      assert(!result.isError, "Should render without error");
+      const svg = result.content[0].text;
+      const roadLayer = svg.match(/<g id="C-ROAD">([\s\S]*?)<\/g>/);
+      assert(roadLayer, "C-ROAD layer must exist");
+      const content = roadLayer[1];
+      // One combined path...
+      assert.equal((content.match(/<path/g) || []).length, 1, "roads should be one combined path");
+      // ...emitted with fill-rule=evenodd so any enclosed gap is a hole, not a block.
+      assert(
+        content.includes('fill-rule="evenodd"'),
+        "the merged carriageway must use fill-rule=evenodd so gaps between spurs are holes, not filled blocks"
+      );
+    }
+  );
+
   await t.test("renders buildings with poché fill", async () => {
     const spec = {
       unit: "m",

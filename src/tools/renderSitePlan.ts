@@ -121,17 +121,27 @@ function renderSitePlan(spec: SiteSpec): string {
     // Step 2: Union all road bands into one merged polygon
     const mergedRoads = unionPolygons(clipper, roadBands);
 
-    // Step 3: Stroke the merged result (one outline, no interior seams at junctions)
-    for (const roadPoly of mergedRoads) {
-      const pathData = polygonToSvg(roadPoly);
+    // Step 3: Stroke the merged result as ONE path with fill-rule="evenodd".
+    // The union of a branching road network returns enclosed gaps between
+    // spurs (and any true holes) as separate opposite-winding paths. Emitting
+    // each returned path as its own SOLID fill would flood those gaps — a gap
+    // between two close parallel spurs paints as a filled block, bridging what
+    // should stay open (and silently covering whatever is underneath, e.g.
+    // lawn/trees). As subpaths of one even-odd path, those gaps become holes
+    // and only the actual carriageway is filled. (Same fix as the wall poché.)
+    if (mergedRoads.length > 0) {
+      const combined = mergedRoads.map((poly) => polygonToSvg(poly)).join(" ");
       const stroke = resolveColor(spec.roads[0].style?.stroke, theme);
-      const svg = pathToSvg(
-        pathData,
-        palette.ink,
-        stroke,
-        getLineweight("medium", spec.scale, spec.unit)
+      layers["C-ROAD"].push(
+        pathToSvg(
+          combined,
+          palette.ink,
+          stroke,
+          getLineweight("medium", spec.scale, spec.unit),
+          undefined,
+          "evenodd"
+        )
       );
-      layers["C-ROAD"].push(svg);
     }
   }
 
