@@ -1,0 +1,57 @@
+{
+  "unit": "m",
+  "scale": "1:500",
+  "theme": "blueprint",
+  "titleBlock": {
+    "title": "Curved Site Geometry",
+    "drawingNumber": "S-002",
+    "date": "2025-01-21",
+    "project": "Curves Example",
+    "northAngle": 0
+  },
+  "roads": [
+    { "id": "approach-w", "path": [[0, 60], [40, 60]], "width": 8, "type": "local" },
+    { "id": "approach-e", "path": [[80, 60], [120, 60]], "width": 8, "type": "local" },
+    { "id": "approach-n", "path": [[60, 0], [60, 40]], "width": 8, "type": "local" },
+    { "id": "ring-1", "path": [[60, 44], [76, 60]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
+    { "id": "ring-2", "path": [[76, 60], [60, 76]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
+    { "id": "ring-3", "path": [[60, 76], [44, 60]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
+    { "id": "ring-4", "path": [[44, 60], [60, 44]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
+    { "id": "sweep", "path": [[0, 110], [120, 110]], "width": 7, "curve": { "radius": 90, "clockwise": false } }
+  ],
+  "greenSpaces": [
+    { "id": "roundabout-island", "polygon": [
+      [60, 54], [64.2, 55.8], [66, 60], [64.2, 64.2], [60, 66], [55.8, 64.2], [54, 60], [55.8, 55.8]
+    ], "landscapeType": "planting", "label": "Island" }
+  ],
+  "buildings": [
+    {
+      "id": "round-tower",
+      "footprint": [[16, 12], [32, 12], [32, 28], [16, 28]],
+      "footprintCurves": [
+        { "corner": 0, "radius": 8 },
+        { "corner": 1, "radius": 8 },
+        { "corner": 2, "radius": 8 },
+        { "corner": 3, "radius": 8 }
+      ],
+      "label": "Rotunda"
+    },
+    {
+      "id": "bowed-hall",
+      "footprint": [[92, 12], [112, 12], [112, 34], [92, 34]],
+      "footprintCurves": [{ "edge": 2, "radius": 26, "clockwise": false }],
+      "label": "Hall"
+    },
+    {
+      "id": "rounded-office",
+      "footprint": [[20, 82], [52, 82], [52, 100], [20, 100]],
+      "footprintCurves": [
+        { "corner": 0, "radius": 5 },
+        { "corner": 1, "radius": 5 },
+        { "corner": 2, "radius": 5 },
+        { "corner": 3, "radius": 5 }
+      ],
+      "label": "Office"
+    }
+  ]
+}
