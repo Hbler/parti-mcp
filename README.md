@@ -121,7 +121,35 @@ Covers:
 - Schema validation
 - Rendering pipeline
 - Integration tests with real examples
-- Regression tests for known bugs (junction seams, text sizing, enclosed-room poché)
+- Regression tests for known bugs (junction seams, text sizing, enclosed-room poché, road gap-bridging)
+
+### Verifying output
+
+Two layers, because structural checks alone miss geometry bugs:
+
+**Structural (automated).** Render every example through the real tool handlers and confirm each produces well-formed SVG:
+
+```bash
+npm run verify
+```
+
+This catches broken or stale examples and render errors. It does **not** judge appearance.
+
+**Appearance (rasterize and look).** The definitive check is to turn the SVG into an image and *look at it* — inspecting raw coordinates reliably misses real defects (a flooded room, a road block bridging a gap and hiding what's beneath, overlapping labels). Render the SVG, rasterize it, and open the result:
+
+```bash
+# macOS (built in, no install):
+qlmanage -t -s 1600 -o out/ plan.svg
+
+# Linux / CI alternatives:
+rsvg-convert plan.svg -o plan.png      # librsvg
+resvg plan.svg plan.png                # resvg
+# or load the SVG in headless Chrome and screenshot it
+```
+
+Then confirm the things automation can't: line-weight hierarchy reads, poché/hatch fills walls (rooms are not flooded), doors swing and windows glaze within the wall, dimensions are legible, and — for site plans — roads merge at junctions while gaps between road spurs stay open with nothing hidden under a filled block.
+
+> Rasterization is intentionally **not** built into the server: the tools emit SVG only. Keeping raster out keeps the server a pure, deterministic renderer with a clean `npx` install (no native image dependency), so "look at a PNG" is a downstream verification step, as above.
 
 ### Rendering examples without a client
 
