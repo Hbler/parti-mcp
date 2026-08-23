@@ -66,7 +66,7 @@ Call each tool with { spec: <object matching the tool's inputSchema> }. Determin
 const server = new Server(
   {
     name: "parti-mcp",
-    version: "1.1.0",
+    version: "1.1.1",
   },
   {
     capabilities: {
