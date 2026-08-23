@@ -207,6 +207,115 @@ export function tessellateArc(
 }
 
 /**
+ * A curve applied to a closed footprint polygon. Structural type (mirrors the
+ * FootprintCurve schema) so geometry stays free of schema imports.
+ */
+export interface FootprintCurveSpec {
+  edge?: number;
+  corner?: number;
+  setbackIn?: number;
+  setbackOut?: number;
+  radius?: number;
+  clockwise?: boolean;
+}
+
+function vsub(a: Coordinate, b: Coordinate): Coordinate {
+  return [a[0] - b[0], a[1] - b[1]];
+}
+function vlen(a: Coordinate): number {
+  return Math.sqrt(a[0] * a[0] + a[1] * a[1]);
+}
+function vunit(a: Coordinate): Coordinate {
+  const l = vlen(a) || 1;
+  return [a[0] / l, a[1] / l];
+}
+
+/**
+ * Apply circular-arc curves to a closed footprint polygon, returning a new
+ * (denser) polygon with the targeted edges/corners replaced by tessellated
+ * arcs. Straight edges/corners are left untouched. All arcs go through the
+ * shared `tessellateArc`. If a curve is degenerate/does not fit, that entry is
+ * skipped (the sharp edge/corner is kept) rather than throwing.
+ *
+ * - edge bow: replace edge `i`→`i+1` with an arc (needs `radius`).
+ * - corner round: replace vertex `i` with an arc between two setback points on
+ *   the adjacent edges. Mode by field presence:
+ *     radius only     → tangent fillet, setback d = radius / tan(theta/2)
+ *     setbacks (± radius) → free arc through the two setback points
+ */
+export function resolveFootprint(
+  footprint: Polygon,
+  curves?: FootprintCurveSpec[]
+): Polygon {
+  if (!curves || curves.length === 0) return footprint;
+  const n = footprint.length;
+  const edgeCurve = new Map<number, FootprintCurveSpec>();
+  const cornerCurve = new Map<number, FootprintCurveSpec>();
+  for (const c of curves) {
+    if (c.edge !== undefined) edgeCurve.set(((c.edge % n) + n) % n, c);
+    else if (c.corner !== undefined) cornerCurve.set(((c.corner % n) + n) % n, c);
+  }
+
+  const out: Polygon = [];
+  for (let i = 0; i < n; i++) {
+    const prev = footprint[(i - 1 + n) % n];
+    const cur = footprint[i];
+    const next = footprint[(i + 1) % n];
+
+    // Corner round at vertex i: emit the arc INSTEAD of the vertex.
+    const cc = cornerCurve.get(i);
+    if (cc) {
+      const dirIn = vunit(vsub(cur, prev));   // toward the corner
+      const dirOut = vunit(vsub(next, cur));  // away from the corner
+      const inLen = vlen(vsub(cur, prev));
+      const outLen = vlen(vsub(next, cur));
+
+      let dIn = cc.setbackIn;
+      let dOut = cc.setbackOut;
+      if (dIn === undefined && dOut === undefined && cc.radius !== undefined) {
+        // Tangent fillet: interior half-angle between the two edges.
+        const cosTurn = Math.max(-1, Math.min(1, dirIn[0] * dirOut[0] + dirIn[1] * dirOut[1]));
+        const turn = Math.acos(cosTurn);        // exterior turn angle
+        const half = (Math.PI - turn) / 2;      // half interior angle
+        const t = Math.tan(half);
+        const d = t > 1e-6 ? cc.radius / t : 0;
+        dIn = d;
+        dOut = d;
+      }
+      dIn = Math.min(dIn ?? cc.setbackOut ?? 0, inLen * 0.999);
+      dOut = Math.min(dOut ?? cc.setbackIn ?? 0, outLen * 0.999);
+
+      if (dIn > 0 && dOut > 0) {
+        const p1: Coordinate = [cur[0] - dirIn[0] * dIn, cur[1] - dirIn[1] * dIn];
+        const p2: Coordinate = [cur[0] + dirOut[0] * dOut, cur[1] + dirOut[1] * dOut];
+        // Radius: explicit, else derive from chord so the arc fits the corner.
+        const chord = vlen(vsub(p2, p1));
+        const radius = cc.radius ?? chord / 2 + 1e-9;
+        // clockwise default: bulge toward the corner (convex round).
+        const cw = cc.clockwise ?? true;
+        const arc = tessellateArc(p1, p2, Math.max(radius, chord / 2), cw);
+        out.push(...arc);
+        continue;
+      }
+      // Fell through (degenerate) → keep the sharp vertex.
+      out.push(cur);
+    } else {
+      out.push(cur);
+    }
+
+    // Edge bow on edge i→i+1: replace the straight hop to `next` with an arc.
+    const ec = edgeCurve.get(i);
+    if (ec && ec.radius !== undefined) {
+      const arc = tessellateArc(cur, next, ec.radius, ec.clockwise ?? false);
+      // arc includes both endpoints; we already pushed `cur`, and `next` will
+      // be pushed by the next iteration — so add only the interior arc points.
+      out.push(...arc.slice(1, arc.length - 1));
+    }
+  }
+  return out;
+}
+
+/**
  * Get the unit tangent (direction) of a path at a given position ∈ [0, 1].
  * Returns a unit vector along the segment containing that position.
  */

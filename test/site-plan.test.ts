@@ -400,6 +400,74 @@ test("renderSitePlan / Operation 9", async (t) => {
     assert(Number(m[1]) === 10 && Number(m[2]) === 10, `default label sits at the centroid (10,10), got (${m[1]},${m[2]})`);
   });
 
+  await t.test("curved road: a 2-point path + curve tessellates into a smooth carriageway", async () => {
+    const straight = {
+      unit: "m", scale: "1:200",
+      roads: [{ id: "r", path: [[0, 0], [40, 0]], width: 6 }],
+    };
+    const curved = {
+      unit: "m", scale: "1:200",
+      roads: [{ id: "r", path: [[0, 0], [40, 0]], width: 6, curve: { radius: 30, clockwise: false } }],
+    };
+    const s = await handleRenderSitePlan({ spec: straight });
+    const c = await handleRenderSitePlan({ spec: curved });
+    assert(!s.isError && !c.isError);
+    // The curved carriageway path has many more vertices (L commands) than the straight one.
+    const countL = (svg) => (svg.match(/L /g) || []).length;
+    assert(countL(c.content[0].text) > countL(s.content[0].text) + 5,
+      "curved road should tessellate into many segments");
+  });
+
+  await t.test("curved building footprint: edge bow adds arc vertices", async () => {
+    const spec = {
+      unit: "m", scale: "1:200",
+      buildings: [
+        {
+          id: "b",
+          footprint: [[0, 0], [20, 0], [20, 12], [0, 12]],
+          footprintCurves: [{ edge: 0, radius: 18, clockwise: false }], // bow the south edge
+          label: "Bowed",
+        },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError, result.content?.[0]?.text);
+    const svg = result.content[0].text;
+    const bldg = svg.match(/<g id="A-BLDG">([\s\S]*?)<\/g>/)[1];
+    // Straight footprint would be ~4 vertices (3 L's); a bowed edge adds many.
+    assert((bldg.match(/L /g) || []).length > 6, "edge bow should add arc vertices to the footprint");
+  });
+
+  await t.test("curved building footprint: radius-only corner is a tangent fillet", async () => {
+    const spec = {
+      unit: "m", scale: "1:200",
+      buildings: [
+        {
+          id: "b",
+          footprint: [[0, 0], [20, 0], [20, 20], [0, 20]],
+          footprintCurves: [{ corner: 1, radius: 4 }], // round the (20,0) corner
+        },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError, result.content?.[0]?.text);
+    const svg = result.content[0].text;
+    // The sharp corner vertex (20,0) should be gone, replaced by arc points.
+    const bldg = svg.match(/<g id="A-BLDG">([\s\S]*?)<\/g>/)[1];
+    assert((bldg.match(/L /g) || []).length > 4, "fillet should add arc vertices");
+  });
+
+  await t.test("footprintCurve schema: a curve targeting neither edge nor corner is rejected", async () => {
+    const spec = {
+      unit: "m", scale: "1:200",
+      buildings: [
+        { id: "b", footprint: [[0, 0], [10, 0], [10, 10], [0, 10]], footprintCurves: [{ radius: 3 }] },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(result.isError, "a curve with neither edge nor corner must be rejected");
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderSitePlan({ spec: "not valid json" });
     assert(result.isError);

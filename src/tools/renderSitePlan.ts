@@ -11,7 +11,7 @@ import {
   differencePolygons,
   type Polygon,
 } from "../geometry/clipper.js";
-import { getBbox, getCentroid } from "../geometry/primitives.js";
+import { getBbox, getCentroid, tessellateArc, resolveFootprint } from "../geometry/primitives.js";
 import { modelPerPaperMm } from "../geometry/scale.js";
 import { createLayerGroup } from "../render/layers.js";
 import {
@@ -114,7 +114,13 @@ function renderSitePlan(spec: SiteSpec): string {
     // Step 1: Offset each road centerline to create bands
     const roadBands: Polygon[] = [];
     for (const road of spec.roads) {
-      const bands = offsetCenterline(clipper, road.path, road.width);
+      // A curved road (2-point path + curve) is tessellated to an arc polyline
+      // before offsetting — identical to the wall curve model.
+      const centerline =
+        road.curve && road.path.length === 2
+          ? tessellateArc(road.path[0], road.path[1], road.curve.radius, road.curve.clockwise)
+          : road.path;
+      const bands = offsetCenterline(clipper, centerline, road.width);
       roadBands.push(...bands);
     }
 
@@ -154,7 +160,10 @@ function renderSitePlan(spec: SiteSpec): string {
     // `style.fill` highlight is honored (unioning all footprints would collapse
     // them to a single fill). Distinct footprints already read as figure-ground.
     for (const building of spec.buildings) {
-      const pathData = polygonToSvg(building.footprint);
+      // Resolve any curved edges/corners into a tessellated polygon once, so
+      // fill, label placement, and bbox all see the same geometry.
+      const footprint = resolveFootprint(building.footprint, building.footprintCurves);
+      const pathData = polygonToSvg(footprint);
       const fill = building.style?.fill || palette.buildingFill;
       const svg = pathToSvg(
         pathData,
@@ -165,7 +174,7 @@ function renderSitePlan(spec: SiteSpec): string {
       layers["A-BLDG"].push(svg);
 
       if (building.label) {
-        const a = resolveLabelAnchor(building.footprint, building.labelPosition ?? "center", labelSize);
+        const a = resolveLabelAnchor(footprint, building.labelPosition ?? "center", labelSize);
         layers["A-ANNO-TEXT"].push(
           textLinesWithHaloToSvg([building.label], a.x, a.y, labelSize, getContrastingTextColor(fill, theme), fill, a.textAnchor, building.labelOrientation ?? "horizontal", a.verticalBias)
         );
@@ -360,11 +369,22 @@ function renderSitePlan(spec: SiteSpec): string {
 
   // Collect all polygons for bbox
   const allPolygons: Polygon[] = [];
-  if (spec.buildings) allPolygons.push(...spec.buildings.map((b) => b.footprint));
+  if (spec.buildings) allPolygons.push(...spec.buildings.map((b) => resolveFootprint(b.footprint, b.footprintCurves)));
   if (spec.parcels) allPolygons.push(...spec.parcels.map((p) => p.polygon));
   if (spec.pavedAreas) allPolygons.push(...spec.pavedAreas.map((a) => a.polygon));
   if (spec.water) allPolygons.push(...spec.water.map((w) => w.polygon));
   if (spec.greenSpaces) allPolygons.push(...spec.greenSpaces.map((g) => g.polygon));
+  // Curved roads bulge past their two endpoints — include the tessellated arc
+  // in the bbox so the sheet doesn't clip the carriageway.
+  if (spec.roads) {
+    for (const r of spec.roads) {
+      allPolygons.push(
+        r.curve && r.path.length === 2
+          ? tessellateArc(r.path[0], r.path[1], r.curve.radius, r.curve.clockwise)
+          : r.path
+      );
+    }
+  }
 
   // Compute bbox for sheet layout
   const bbox = allPolygons.length > 0 ? getBbox(allPolygons) : { minX: 0, minY: 0, maxX: 100, maxY: 100 };

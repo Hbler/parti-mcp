@@ -48,6 +48,56 @@ export const BarrierTypeSchema = z.enum(["fence", "wall", "hedge", "gate"]);
 export type BarrierType = z.infer<typeof BarrierTypeSchema>;
 
 // ============================================================================
+// Curve schemas (circular arcs only, tessellated via geometry/tessellateArc)
+// ============================================================================
+
+/**
+ * Circular-arc curve for a road whose `path` has exactly two points — same
+ * model as a curved wall. `clockwise` picks which side the arc bulges toward.
+ */
+export const RoadCurveSchema = z.object({
+  radius: z.number().positive(),
+  clockwise: z.boolean().default(false),
+});
+export type RoadCurve = z.infer<typeof RoadCurveSchema>;
+
+/**
+ * A single curve applied to a building footprint. Targets EITHER an edge (a
+ * bowed facade) or a corner (a rounded/filleted corner).
+ *
+ * - edge bow: set `edge` (the edge from vertex `edge`→`edge+1`) + `radius`.
+ * - corner round: set `corner` (the vertex index). Mode by presence of fields:
+ *     setbacks + radius → free arc through the two setback points at `radius`
+ *     setbacks only     → free arc fit through the two setback points
+ *     radius only       → tangent fillet (setbacks computed from the angle)
+ *     neither           → invalid (refinement error)
+ */
+export const FootprintCurveSchema = z
+  .object({
+    edge: z.number().int().nonnegative().optional(),
+    corner: z.number().int().nonnegative().optional(),
+    setbackIn: z.number().positive().optional(),
+    setbackOut: z.number().positive().optional(),
+    radius: z.number().positive().optional(),
+    clockwise: z.boolean().optional(),
+  })
+  .refine((c) => (c.edge === undefined) !== (c.corner === undefined), {
+    message: "A footprintCurve must target exactly one of `edge` or `corner`.",
+  })
+  .refine((c) => c.edge === undefined || c.radius !== undefined, {
+    message: "An edge bow requires `radius`.",
+  })
+  .refine(
+    (c) =>
+      c.corner === undefined ||
+      c.radius !== undefined ||
+      c.setbackIn !== undefined ||
+      c.setbackOut !== undefined,
+    { message: "A corner round requires `radius` or setback(s)." }
+  );
+export type FootprintCurve = z.infer<typeof FootprintCurveSchema>;
+
+// ============================================================================
 // Site Entities
 // ============================================================================
 
@@ -57,6 +107,7 @@ export type BarrierType = z.infer<typeof BarrierTypeSchema>;
 export const BuildingSchema = z.object({
   id: z.string(),
   footprint: z.array(z.tuple([z.number(), z.number()])).min(3),
+  footprintCurves: z.array(FootprintCurveSchema).optional(),
   label: z.string().optional(),
   labelOrientation: LabelOrientationSchema.optional(),
   labelPosition: LabelPositionSchema.optional(),
@@ -86,6 +137,7 @@ export const RoadSchema = z.object({
   path: z.array(z.tuple([z.number(), z.number()])).min(2),
   width: z.number().positive(),
   type: RoadTypeSchema.optional(),
+  curve: RoadCurveSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type Road = z.infer<typeof RoadSchema>;
