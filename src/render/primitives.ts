@@ -172,6 +172,11 @@ export function textLinesToSvg(
  * sheet/background color is drawn behind the text so busy floor hatching
  * doesn't render through it and the label stays legible. The rect is sized to
  * the widest line (monospace metrics) plus padding, centered on (x, y).
+ *
+ * orientation "vertical" rotates the whole label group 90° counter-clockwise
+ * about (x, y) so the text reads bottom-to-top (the standard drafting
+ * convention for vertical text) — useful for labeling a narrow shape along its
+ * long axis. The halo rotates with the text since both live in the same group.
  */
 export function textLinesWithHaloToSvg(
   lines: string[],
@@ -180,7 +185,8 @@ export function textLinesWithHaloToSvg(
   fontSize: number,
   fill: string,
   haloColor: string,
-  textAnchor: "start" | "middle" | "end" = "middle"
+  textAnchor: "start" | "middle" | "end" = "middle",
+  orientation: "horizontal" | "vertical" = "horizontal"
 ): string {
   if (lines.length === 0) {
     return "";
@@ -198,7 +204,12 @@ export function textLinesWithHaloToSvg(
     `<rect x="${formatNumber(boxX)}" y="${formatNumber(boxY)}" ` +
     `width="${formatNumber(boxW)}" height="${formatNumber(boxH)}" ` +
     `fill="${haloColor}" fill-opacity="0.85" stroke="none" />`;
-  return halo + "\n" + textLinesToSvg(lines, x, y, fontSize, fill, textAnchor);
+  const body = halo + "\n" + textLinesToSvg(lines, x, y, fontSize, fill, textAnchor);
+  if (orientation === "vertical") {
+    // -90° about the anchor: text reads bottom-to-top (counter-clockwise).
+    return `<g transform="rotate(-90, ${formatNumber(x)}, ${formatNumber(y)})">\n${body}\n</g>`;
+  }
+  return body;
 }
 
 /**

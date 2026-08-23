@@ -65,6 +65,17 @@ export function generateDefs(scale: string, unit: Unit, theme: Theme): string {
     `</pattern>`
   );
 
+  // Wood: parallel plank lines (decking / timber). Long boards run along the
+  // pattern's x-axis; each tile is one plank width, drawn as a single line at
+  // the plank edge so the fill reads as evenly-spaced boards.
+  parts.push(
+    `<pattern id="hatch-wood" width="${formatNumber(6 * mpmm)}" height="${formatNumber(2.5 * mpmm)}" ` +
+    `patternUnits="userSpaceOnUse">` +
+    `<line x1="0" y1="0" x2="${formatNumber(6 * mpmm)}" y2="0" stroke="${palette.hatchInk}" stroke-width="${formatNumber(0.3 * mpmm)}" />` +
+    `<line x1="0" y1="${formatNumber(1.25 * mpmm)}" x2="${formatNumber(6 * mpmm)}" y2="${formatNumber(1.25 * mpmm)}" stroke="${palette.hatchInk}" stroke-width="${formatNumber(0.12 * mpmm)}" />` +
+    `</pattern>`
+  );
+
   // Lawn: fine stipple
   parts.push(
     `<pattern id="hatch-lawn" width="${formatNumber(2 * mpmm)}" height="${formatNumber(2 * mpmm)}" ` +
@@ -129,13 +140,13 @@ export function getMaterialPatternId(material: string): string {
     masonry: "hatch-masonry",
     insulation: "hatch-insulation",
     earth: "hatch-earth",
-    wood: "hatch-brick",
+    wood: "hatch-wood",
     // Site hardscape surfaces
     asphalt: "hatch-earth",
     pavers: "hatch-pavers",
     gravel: "hatch-concrete",
     patio: "hatch-pavers",
-    deck: "hatch-masonry",
+    deck: "hatch-wood",
     driveway: "hatch-concrete",
     sidewalk: "hatch-pavers",
     // Soft landscape

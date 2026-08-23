@@ -9,6 +9,7 @@ import {
   StyleSchema,
   DimensionSchema,
   GridLineSchema,
+  LabelOrientationSchema,
 } from "./common.js";
 
 // ============================================================================
@@ -68,6 +69,7 @@ export const RoomSchema = z.object({
   polygon: z.array(z.tuple([z.number(), z.number()])).min(3),
   roomType: RoomTypeSchema.optional(),
   label: z.string().optional(),
+  labelOrientation: LabelOrientationSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type Room = z.infer<typeof RoomSchema>;

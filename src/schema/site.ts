@@ -9,6 +9,7 @@ import {
   LabelSchema,
   DimensionSchema,
   GridLineSchema,
+  LabelOrientationSchema,
 } from "./common.js";
 
 // ============================================================================
@@ -56,6 +57,7 @@ export const BuildingSchema = z.object({
   id: z.string(),
   footprint: z.array(z.tuple([z.number(), z.number()])).min(3),
   label: z.string().optional(),
+  labelOrientation: LabelOrientationSchema.optional(),
   floors: z.number().optional(),
   height: z.number().optional(),
   style: StyleSchema.optional(),
@@ -99,6 +101,14 @@ export const PavedAreaSchema = z.object({
   polygon: z.array(z.tuple([z.number(), z.number()])).min(3),
   surface: SurfaceTypeSchema,
   markings: z.array(PavedAreaMarkingSchema).optional(),
+  label: z.string().optional(),
+  labelOrientation: LabelOrientationSchema.optional(),
+  /**
+   * When true, render this paved area ABOVE water (a deck/boardwalk/jetty over
+   * a pond or pool). Default false: renders as ground-level hardscape (below
+   * water). Default-false keeps existing plans byte-identical.
+   */
+  elevated: z.boolean().optional(),
   style: StyleSchema.optional(),
 });
 export type PavedArea = z.infer<typeof PavedAreaSchema>;
@@ -111,6 +121,8 @@ export const WaterSchema = z.object({
   id: z.string(),
   polygon: z.array(z.tuple([z.number(), z.number()])).min(3),
   waterType: WaterTypeSchema.optional(),
+  label: z.string().optional(),
+  labelOrientation: LabelOrientationSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type Water = z.infer<typeof WaterSchema>;
@@ -122,6 +134,8 @@ export const GreenSpaceSchema = z.object({
   id: z.string(),
   polygon: z.array(z.tuple([z.number(), z.number()])).min(3),
   landscapeType: LandscapeTypeSchema,
+  label: z.string().optional(),
+  labelOrientation: LabelOrientationSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type GreenSpace = z.infer<typeof GreenSpaceSchema>;

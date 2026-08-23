@@ -96,6 +96,7 @@ function renderSitePlan(spec: SiteSpec): string {
     "C-ROAD": [],
     "L-HARD": [],
     "L-WATR": [],
+    "L-DECK": [],
     "L-PLNT": [],
     "L-SITE": [],
     "A-BLDG": [],
@@ -155,7 +156,7 @@ function renderSitePlan(spec: SiteSpec): string {
       if (building.label) {
         const [cx, cy] = getCentroid(building.footprint);
         layers["A-ANNO-TEXT"].push(
-          textLinesWithHaloToSvg([building.label], cx, cy, labelSize, getContrastingTextColor(fill, theme), fill, "middle")
+          textLinesWithHaloToSvg([building.label], cx, cy, labelSize, getContrastingTextColor(fill, theme), fill, "middle", building.labelOrientation ?? "horizontal")
         );
       }
     }
@@ -189,18 +190,26 @@ function renderSitePlan(spec: SiteSpec): string {
       const patternId = getMaterialPatternId(paved.surface);
       const fillUrl = patternId !== "none" ? `url(#${patternId})` : palette.pochéFill;
 
+      // Elevated paved areas (deck/boardwalk/jetty over water) paint on L-DECK,
+      // above the water layer; ground-level hardscape stays on L-HARD.
+      const pavedLayer = paved.elevated ? "L-DECK" : "L-HARD";
+
       const svg = pathToSvg(
         pathData,
         fillUrl,
         palette.ink,
         getLineweight("light", spec.scale, spec.unit)
       );
-      layers["L-HARD"].push(svg);
+      layers[pavedLayer].push(svg);
 
       if (paved.surface) {
         const [cx, cy] = getCentroid(paved.polygon);
         layers["A-ANNO-TEXT"].push(
-          textLinesWithHaloToSvg([titleCase(paved.surface)], cx, cy, labelSize, palette.ink, palette.background, "middle")
+          textLinesWithHaloToSvg(
+            [paved.label ?? titleCase(paved.surface)],
+            cx, cy, labelSize, palette.ink, palette.background, "middle",
+            paved.labelOrientation ?? "horizontal"
+          )
         );
       }
 
@@ -214,7 +223,7 @@ function renderSitePlan(spec: SiteSpec): string {
             palette.ink,
             getLineweight("fine", spec.scale, spec.unit)
           );
-          layers["L-HARD"].push(markingSvg);
+          layers[pavedLayer].push(markingSvg);
         }
       }
     }
@@ -235,10 +244,14 @@ function renderSitePlan(spec: SiteSpec): string {
       );
       layers["L-WATR"].push(svg);
 
-      if (waterFeature.waterType) {
+      if (waterFeature.label ?? waterFeature.waterType) {
         const [cx, cy] = getCentroid(waterFeature.polygon);
         layers["A-ANNO-TEXT"].push(
-          textLinesWithHaloToSvg([titleCase(waterFeature.waterType)], cx, cy, labelSize, palette.ink, palette.background, "middle")
+          textLinesWithHaloToSvg(
+            [waterFeature.label ?? titleCase(waterFeature.waterType!)],
+            cx, cy, labelSize, palette.ink, palette.background, "middle",
+            waterFeature.labelOrientation ?? "horizontal"
+          )
         );
       }
     }
@@ -262,10 +275,14 @@ function renderSitePlan(spec: SiteSpec): string {
       );
       layers["L-PLNT"].push(svg);
 
-      if (green.landscapeType) {
+      if (green.label ?? green.landscapeType) {
         const [gcx, gcy] = getCentroid(green.polygon);
         layers["A-ANNO-TEXT"].push(
-          textLinesWithHaloToSvg([titleCase(green.landscapeType)], gcx, gcy, labelSize, palette.ink, palette.background, "middle")
+          textLinesWithHaloToSvg(
+            [green.label ?? titleCase(green.landscapeType)],
+            gcx, gcy, labelSize, palette.ink, palette.background, "middle",
+            green.labelOrientation ?? "horizontal"
+          )
         );
       }
     }
@@ -316,6 +333,7 @@ function renderSitePlan(spec: SiteSpec): string {
     "C-ROAD",
     "L-HARD",
     "L-WATR",
+    "L-DECK",
     "L-PLNT",
     "L-SITE",
     "A-BLDG",

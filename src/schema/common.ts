@@ -41,6 +41,13 @@ export const MaterialSchema = z.enum([
 ]);
 export type Material = z.infer<typeof MaterialSchema>;
 
+/**
+ * Label orientation for area-entity labels. "vertical" rotates the label 90°
+ * counter-clockwise (text reads bottom-to-top) so it fits a narrow shape.
+ */
+export const LabelOrientationSchema = z.enum(["horizontal", "vertical"]);
+export type LabelOrientation = z.infer<typeof LabelOrientationSchema>;
+
 // ============================================================================
 // Safe Color Token (injection guard)
 // ============================================================================

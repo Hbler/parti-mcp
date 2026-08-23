@@ -236,6 +236,85 @@ test("renderSitePlan / Operation 9", async (t) => {
     assert(svg.includes("circle") || svg.includes("oak"));
   });
 
+  await t.test("deck surface renders the wood plank hatch (not masonry)", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "deck", polygon: [[0, 0], [5, 0], [5, 4], [0, 4]], surface: "deck" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    assert(svg.includes("hatch-wood"), "deck should use hatch-wood");
+    assert(svg.includes('<pattern id="hatch-wood"'), "the wood pattern must be defined");
+  });
+
+  await t.test("elevated paved area renders on L-DECK, above the water layer", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      water: [{ id: "pond", polygon: [[0, 0], [10, 0], [10, 10], [0, 10]], waterType: "pond" }],
+      pavedAreas: [
+        { id: "deck", polygon: [[2, 2], [8, 2], [8, 8], [2, 8]], surface: "deck", elevated: true },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    assert(svg.includes('<g id="L-DECK">'), "elevated deck should render on L-DECK");
+    // L-DECK group must come AFTER L-WATR in document order (painted on top).
+    assert(
+      svg.indexOf('<g id="L-DECK">') > svg.indexOf('<g id="L-WATR">'),
+      "L-DECK must paint after (above) L-WATR"
+    );
+  });
+
+  await t.test("non-elevated paved area stays on L-HARD (below water)", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "patio", polygon: [[0, 0], [5, 0], [5, 4], [0, 4]], surface: "concrete" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    assert(svg.includes('<g id="L-HARD">'), "ground paved area stays on L-HARD");
+    assert(!svg.includes('<g id="L-DECK">'), "no deck layer without an elevated area");
+  });
+
+  await t.test("custom label overrides the surface-derived name", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "d", polygon: [[0, 0], [5, 0], [5, 4], [0, 4]], surface: "asphalt", label: "Motor Court" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    assert(svg.includes("Motor Court"), "custom label should be used verbatim");
+    assert(!svg.includes(">Asphalt<"), "the surface-derived default should be replaced");
+  });
+
+  await t.test("vertical labelOrientation rotates the label group", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "drive", polygon: [[0, 0], [3, 0], [3, 20], [0, 20]], surface: "asphalt", labelOrientation: "vertical" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    assert(/<g transform="rotate\(-90,/.test(svg), "vertical label should emit a rotate(-90,...) group");
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderSitePlan({ spec: "not valid json" });
     assert(result.isError);

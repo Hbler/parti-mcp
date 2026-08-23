@@ -330,7 +330,8 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
           3.5 * mpmm,
           getContrastingTextColor(room.style?.fill, theme),
           room.style?.fill || palette.background,
-          "middle"
+          "middle",
+          room.labelOrientation ?? "horizontal"
         );
         layers["A-ANNO-TEXT"].push(labelText);
       }
