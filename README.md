@@ -283,7 +283,7 @@ export async function handleRenderSitePlan(input: {
 - `barriers[]`: Fences, walls, hedges
 - `trees[]`: Individual tree positions with radius and species
 
-**Labels**: on area entities (buildings, rooms, paved areas, water, green spaces), `label` overrides the auto-derived name (a room still appends its computed area); `labelOrientation: "vertical"` rotates the label 90° (reading bottom-to-top) so it fits a narrow shape.
+**Labels**: on area entities (buildings, rooms, paved areas, water, green spaces), `label` overrides the auto-derived name (a room still appends its computed area); `labelOrientation: "vertical"` rotates the label 90° (reading bottom-to-top) so it fits a narrow shape; `labelPosition` places the label within the area — `center` (default) or one of eight bounding-box positions (`top-left`, `top`, `top-right`, `left`, `right`, `bottom-left`, `bottom`, `bottom-right`). Corner positions anchor the text to the corner, reading inward.
 
 ## Scale and Units
 
