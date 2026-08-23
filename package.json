@@ -1,6 +1,6 @@
 {
   "name": "parti-mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -15,6 +15,7 @@
   "scripts": {
     "build": "tsc",
     "test": "node --import=tsx --test test/*.test.ts",
+    "verify": "node --import=tsx scripts/smoke-test.mjs",
     "start": "tsx src/index.ts",
     "prepare": "tsc"
   },
