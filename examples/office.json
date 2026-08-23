@@ -38,7 +38,8 @@
           "id": "open-office",
           "polygon": [[0.4, 0.4], [7.9, 0.4], [7.9, 5.9], [0.4, 5.9]],
           "roomType": "other",
-          "label": "Open Office"
+          "label": "Open Office",
+          "labelPosition": "top-left"
         },
         {
           "id": "core",
