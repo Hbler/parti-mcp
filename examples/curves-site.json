@@ -10,9 +10,9 @@
     "northAngle": 0
   },
   "roads": [
-    { "id": "approach-w", "path": [[0, 60], [40, 60]], "width": 8, "type": "local" },
-    { "id": "approach-e", "path": [[80, 60], [120, 60]], "width": 8, "type": "local" },
-    { "id": "approach-n", "path": [[60, 0], [60, 40]], "width": 8, "type": "local" },
+    { "id": "approach-w", "path": [[0, 60], [44, 60]], "width": 8, "type": "local" },
+    { "id": "approach-e", "path": [[76, 60], [120, 60]], "width": 8, "type": "local" },
+    { "id": "approach-n", "path": [[60, 0], [60, 44]], "width": 8, "type": "local" },
     { "id": "ring-1", "path": [[60, 44], [76, 60]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
     { "id": "ring-2", "path": [[76, 60], [60, 76]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
     { "id": "ring-3", "path": [[60, 76], [44, 60]], "width": 6, "curve": { "radius": 16, "clockwise": true } },
@@ -21,7 +21,10 @@
   ],
   "greenSpaces": [
     { "id": "roundabout-island", "polygon": [
-      [60, 54], [64.2, 55.8], [66, 60], [64.2, 64.2], [60, 66], [55.8, 64.2], [54, 60], [55.8, 55.8]
+      [66, 60], [65.8, 61.55], [65.2, 63], [64.24, 64.24], [63, 65.2], [61.55, 65.8],
+      [60, 66], [58.45, 65.8], [57, 65.2], [55.76, 64.24], [54.8, 63], [54.2, 61.55],
+      [54, 60], [54.2, 58.45], [54.8, 57], [55.76, 55.76], [57, 54.8], [58.45, 54.2],
+      [60, 54], [61.55, 54.2], [63, 54.8], [64.24, 55.76], [65.2, 57], [65.8, 58.45]
     ], "landscapeType": "planting", "label": "Island" }
   ],
   "buildings": [
@@ -39,8 +42,19 @@
     {
       "id": "bowed-hall",
       "footprint": [[92, 12], [112, 12], [112, 34], [92, 34]],
-      "footprintCurves": [{ "edge": 2, "radius": 26, "clockwise": false }],
-      "label": "Hall"
+      "footprintCurves": [
+        { "edge": 2, "radius": 26, "clockwise": true },
+        { "edge": 1, "radius": 40, "clockwise": false },
+        { "edge": 3, "radius": 40, "clockwise": false }
+      ],
+      "label": "Hall (bow out/in)"
+    },
+    {
+      "id": "inset-pavilion",
+      "footprint": [[92, 82], [112, 82], [112, 104], [92, 104]],
+      "footprintCurves": [{ "corner": 3, "radius": 10, "clockwise": false }],
+      "label": "Pavilion (inset)",
+      "labelPosition": "top-left"
     },
     {
       "id": "rounded-office",

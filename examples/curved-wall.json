@@ -17,8 +17,8 @@
       "outline": [[0, 0], [7, 0], [7, 5.5], [0, 5.5]],
       "walls": [
         { "id": "w-south", "path": [[0, 5.35], [7, 5.35]], "thickness": 0.3, "material": "brick" },
-        { "id": "w-west", "path": [[0.15, 1.0], [0.15, 5.35]], "thickness": 0.3, "material": "brick" },
-        { "id": "w-east", "path": [[6.85, 1.0], [6.85, 5.35]], "thickness": 0.3, "material": "brick" },
+        { "id": "w-west", "path": [[0.15, 0.6], [0.15, 5.35]], "thickness": 0.3, "material": "brick" },
+        { "id": "w-east", "path": [[6.85, 0.6], [6.85, 5.35]], "thickness": 0.3, "material": "brick" },
         {
           "id": "w-bay",
           "path": [[0.15, 1.0], [6.85, 1.0]],
