@@ -54,7 +54,7 @@ Conventions (author the spec to these):
 - Stairs (straight run): give footprint, run [bottom, top] travel centerline, treads count, and direction (up|down). Rendered as tread lines + an UP/DN direction arrow + a diagonal break line (treads beyond the cut are dashed). Ladders: give path [start, end] + width; rendered as two rails + rungs. Elevators: give footprint (shaft rectangle) + optional label; rendered as an X-in-box shaft with an inset car (common in offices/mixed-use).
 - Columns/piers/isolated masonry: give position, shape (square|rectangular|round), size (square/round) or width+depth (rectangular), optional material; rendered as a poché/hatch footprint (place on structural-grid intersections). Curved walls: give a wall a two-point path plus curve {radius, clockwise}; the server arcs it and it unions/cuts like a straight wall.
 - Site paved areas (surface: concrete|asphalt|pavers|gravel|patio|deck|driveway|sidewalk) normally render below water; set elevated:true on a paved area to render it ABOVE water (a deck/boardwalk/jetty over a pond or pool). A deck surface hatches as wood planks.
-- Labels: area entities (rooms, buildings, paved areas, water, green spaces) auto-label from their type/surface. Send label to override the name verbatim (a room still appends its computed area); send labelOrientation "vertical" to rotate the label 90° reading bottom-to-top so it fits a narrow shape (default "horizontal").
+- Labels: area entities (rooms, buildings, paved areas, water, green spaces) auto-label from their type/surface. Send label to override the name verbatim (a room still appends its computed area); send labelOrientation "vertical" to rotate the label 90° reading bottom-to-top so it fits a narrow shape (default "horizontal"); send labelPosition to place the label within the area — center (default) or a bounding-box position top-left|top|top-right|left|right|bottom-left|bottom|bottom-right (corner positions anchor the text to the corner, reading inward).
 - Per-element style.fill (a safe color token) highlights an element. material picks a hatch (concrete, brick, masonry, insulation, earth, wood — wood is parallel plank lines).
 
 The server renders exactly what the spec describes — it does NOT infer, correct, or complete the design. You (the caller) own coherence: rooms must tile the floor without unintended overlaps/gaps, wall centerlines must meet at corners to enclose, doors must sit on the wall separating the spaces they join, and every room a person should reach must be reachable from an entrance through connected doors. There is NO wayfinding/reachability check; an incoherent plan renders as given. Intentional exceptions (walk-through closet, open plan) are fine.
@@ -66,7 +66,7 @@ Call each tool with { spec: <object matching the tool's inputSchema> }. Determin
 const server = new Server(
   {
     name: "parti-mcp",
-    version: "1.0.0",
+    version: "1.1.0",
   },
   {
     capabilities: {

@@ -20,6 +20,7 @@ import {
   pathToSvg,
   lineToSvg,
   textLinesWithHaloToSvg,
+  resolveLabelAnchor,
   formatNumber,
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveFill, resolveStroke, getContrastingTextColor } from "../render/theme.js";
@@ -319,19 +320,20 @@ function renderFloor(floor: Floor, spec: FloorPlanSpec): string {
 
       // Room label with area on a second line (SVG ignores "\n" in <text>)
       if (room.label) {
-        const centroid = getCentroid(room.polygon);
         const area = getPolygonArea(room.polygon);
         const areaText = `${area.toFixed(1)} ${spec.unit}²`;
+        const a = resolveLabelAnchor(room.polygon, room.labelPosition ?? "center", 3.5 * mpmm);
 
         const labelText = textLinesWithHaloToSvg(
           [room.label, areaText],
-          centroid[0],
-          centroid[1],
+          a.x,
+          a.y,
           3.5 * mpmm,
           getContrastingTextColor(room.style?.fill, theme),
           room.style?.fill || palette.background,
-          "middle",
-          room.labelOrientation ?? "horizontal"
+          a.textAnchor,
+          room.labelOrientation ?? "horizontal",
+          a.verticalBias
         );
         layers["A-ANNO-TEXT"].push(labelText);
       }

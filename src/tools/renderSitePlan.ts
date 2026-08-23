@@ -20,6 +20,7 @@ import {
   pathToSvg,
   circleToSvg,
   textLinesWithHaloToSvg,
+  resolveLabelAnchor,
   formatNumber,
 } from "../render/primitives.js";
 import { getTheme, getLineweight, resolveColor, getContrastingTextColor } from "../render/theme.js";
@@ -154,9 +155,9 @@ function renderSitePlan(spec: SiteSpec): string {
       layers["A-BLDG"].push(svg);
 
       if (building.label) {
-        const [cx, cy] = getCentroid(building.footprint);
+        const a = resolveLabelAnchor(building.footprint, building.labelPosition ?? "center", labelSize);
         layers["A-ANNO-TEXT"].push(
-          textLinesWithHaloToSvg([building.label], cx, cy, labelSize, getContrastingTextColor(fill, theme), fill, "middle", building.labelOrientation ?? "horizontal")
+          textLinesWithHaloToSvg([building.label], a.x, a.y, labelSize, getContrastingTextColor(fill, theme), fill, a.textAnchor, building.labelOrientation ?? "horizontal", a.verticalBias)
         );
       }
     }
@@ -203,12 +204,12 @@ function renderSitePlan(spec: SiteSpec): string {
       layers[pavedLayer].push(svg);
 
       if (paved.surface) {
-        const [cx, cy] = getCentroid(paved.polygon);
+        const a = resolveLabelAnchor(paved.polygon, paved.labelPosition ?? "center", labelSize);
         layers["A-ANNO-TEXT"].push(
           textLinesWithHaloToSvg(
             [paved.label ?? titleCase(paved.surface)],
-            cx, cy, labelSize, palette.ink, palette.background, "middle",
-            paved.labelOrientation ?? "horizontal"
+            a.x, a.y, labelSize, palette.ink, palette.background, a.textAnchor,
+            paved.labelOrientation ?? "horizontal", a.verticalBias
           )
         );
       }
@@ -245,12 +246,12 @@ function renderSitePlan(spec: SiteSpec): string {
       layers["L-WATR"].push(svg);
 
       if (waterFeature.label ?? waterFeature.waterType) {
-        const [cx, cy] = getCentroid(waterFeature.polygon);
+        const a = resolveLabelAnchor(waterFeature.polygon, waterFeature.labelPosition ?? "center", labelSize);
         layers["A-ANNO-TEXT"].push(
           textLinesWithHaloToSvg(
             [waterFeature.label ?? titleCase(waterFeature.waterType!)],
-            cx, cy, labelSize, palette.ink, palette.background, "middle",
-            waterFeature.labelOrientation ?? "horizontal"
+            a.x, a.y, labelSize, palette.ink, palette.background, a.textAnchor,
+            waterFeature.labelOrientation ?? "horizontal", a.verticalBias
           )
         );
       }
@@ -276,12 +277,12 @@ function renderSitePlan(spec: SiteSpec): string {
       layers["L-PLNT"].push(svg);
 
       if (green.label ?? green.landscapeType) {
-        const [gcx, gcy] = getCentroid(green.polygon);
+        const a = resolveLabelAnchor(green.polygon, green.labelPosition ?? "center", labelSize);
         layers["A-ANNO-TEXT"].push(
           textLinesWithHaloToSvg(
             [green.label ?? titleCase(green.landscapeType)],
-            gcx, gcy, labelSize, palette.ink, palette.background, "middle",
-            green.labelOrientation ?? "horizontal"
+            a.x, a.y, labelSize, palette.ink, palette.background, a.textAnchor,
+            green.labelOrientation ?? "horizontal", a.verticalBias
           )
         );
       }

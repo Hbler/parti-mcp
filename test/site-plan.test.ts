@@ -315,6 +315,57 @@ test("renderSitePlan / Operation 9", async (t) => {
     assert(/<g transform="rotate\(-90,/.test(svg), "vertical label should emit a rotate(-90,...) group");
   });
 
+  await t.test("labelPosition top-left anchors text to the start (reads inward)", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "p", polygon: [[0, 0], [20, 0], [20, 20], [0, 20]], surface: "concrete", label: "Court", labelPosition: "top-left" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    // Scope to the label element carrying our text (not the title block).
+    const m = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*text-anchor="start">[^<]*<tspan[^>]*>Court<\/tspan>/);
+    assert(m, "top-left 'Court' label should be a start-anchored text element");
+    assert(Number(m[1]) < 10, `label x (${m[1]}) should be left of center`);
+    assert(Number(m[2]) < 10, `label y (${m[2]}) should be above center`);
+  });
+
+  await t.test("labelPosition bottom-right anchors text to the end", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "p", polygon: [[0, 0], [20, 0], [20, 20], [0, 20]], surface: "concrete", label: "Court", labelPosition: "bottom-right" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    const m = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*text-anchor="end">[^<]*<tspan[^>]*>Court<\/tspan>/);
+    assert(m, "bottom-right 'Court' label should be an end-anchored text element");
+    assert(Number(m[1]) > 10, `label x (${m[1]}) should be right of center`);
+    assert(Number(m[2]) > 10, `label y (${m[2]}) should be below center`);
+  });
+
+  await t.test("labelPosition center (default) stays middle-anchored at the centroid", async () => {
+    const spec = {
+      unit: "m",
+      scale: "1:100",
+      pavedAreas: [
+        { id: "p", polygon: [[0, 0], [20, 0], [20, 20], [0, 20]], surface: "concrete", label: "Court" },
+      ],
+    };
+    const result = await handleRenderSitePlan({ spec });
+    assert(!result.isError);
+    const svg = result.content[0].text;
+    const m = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*text-anchor="middle">[^<]*<tspan[^>]*>Court<\/tspan>/);
+    assert(m, "default 'Court' label should be middle-anchored");
+    assert(Number(m[1]) === 10 && Number(m[2]) === 10, `default label sits at the centroid (10,10), got (${m[1]},${m[2]})`);
+  });
+
   await t.test("rejects invalid spec", async () => {
     const result = await handleRenderSitePlan({ spec: "not valid json" });
     assert(result.isError);

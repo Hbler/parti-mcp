@@ -48,6 +48,25 @@ export type Material = z.infer<typeof MaterialSchema>;
 export const LabelOrientationSchema = z.enum(["horizontal", "vertical"]);
 export type LabelOrientation = z.infer<typeof LabelOrientationSchema>;
 
+/**
+ * Label position within an area entity's bounding box. "center" (default) uses
+ * the polygon centroid; the other eight are resolved from the bbox, inset by a
+ * small paper-mm padding. Corner positions anchor the text to the corner
+ * (reading inward).
+ */
+export const LabelPositionSchema = z.enum([
+  "center",
+  "top-left",
+  "top",
+  "top-right",
+  "left",
+  "right",
+  "bottom-left",
+  "bottom",
+  "bottom-right",
+]);
+export type LabelPosition = z.infer<typeof LabelPositionSchema>;
+
 // ============================================================================
 // Safe Color Token (injection guard)
 // ============================================================================

@@ -167,6 +167,71 @@ export function textLinesToSvg(
   );
 }
 
+export type LabelAnchor = {
+  x: number;
+  y: number;
+  textAnchor: "start" | "middle" | "end";
+  verticalBias: "middle" | "top" | "bottom";
+};
+
+/**
+ * Resolve where an area label sits, given a 9-position choice over the
+ * polygon's bounding box. `center` uses the polygon centroid (correct for
+ * L-shapes); every other value is taken from the bbox, inset by `pad` (a
+ * paper-mm-derived model distance) so text/halo don't spill past the edge.
+ * Corner positions anchor the text TO the corner, reading inward, by setting
+ * `textAnchor` (start on the left column, end on the right column); the top/
+ * bottom rows set `verticalBias` so the text block grows down from the top
+ * edge / up from the bottom edge instead of straddling it. Edge midpoints and
+ * center stay middle-anchored.
+ */
+export function resolveLabelAnchor(
+  polygon: Polygon,
+  position: string,
+  pad: number
+): LabelAnchor {
+  // Centroid (for center) — average of vertices, matching getCentroid's simple form.
+  let cx = 0;
+  let cy = 0;
+  for (const [px, py] of polygon) {
+    cx += px;
+    cy += py;
+  }
+  cx /= polygon.length || 1;
+  cy /= polygon.length || 1;
+
+  if (position === "center" || !position) {
+    return { x: cx, y: cy, textAnchor: "middle", verticalBias: "middle" };
+  }
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [px, py] of polygon) {
+    if (px < minX) minX = px;
+    if (py < minY) minY = py;
+    if (px > maxX) maxX = px;
+    if (py > maxY) maxY = py;
+  }
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+  const left = minX + pad;
+  const right = maxX - pad;
+  const top = minY + pad;
+  const bottom = maxY - pad;
+
+  // Column → x + text anchor (corners read inward); row → y + vertical bias.
+  const table: Record<string, LabelAnchor> = {
+    "top-left": { x: left, y: top, textAnchor: "start", verticalBias: "top" },
+    "top": { x: midX, y: top, textAnchor: "middle", verticalBias: "top" },
+    "top-right": { x: right, y: top, textAnchor: "end", verticalBias: "top" },
+    "left": { x: left, y: midY, textAnchor: "start", verticalBias: "middle" },
+    "right": { x: right, y: midY, textAnchor: "end", verticalBias: "middle" },
+    "bottom-left": { x: left, y: bottom, textAnchor: "start", verticalBias: "bottom" },
+    "bottom": { x: midX, y: bottom, textAnchor: "middle", verticalBias: "bottom" },
+    "bottom-right": { x: right, y: bottom, textAnchor: "end", verticalBias: "bottom" },
+  };
+  return table[position] ?? { x: cx, y: cy, textAnchor: "middle", verticalBias: "middle" };
+}
+
 /**
  * Multi-line label with a "safe area" halo: a background rectangle in the
  * sheet/background color is drawn behind the text so busy floor hatching
@@ -186,7 +251,8 @@ export function textLinesWithHaloToSvg(
   fill: string,
   haloColor: string,
   textAnchor: "start" | "middle" | "end" = "middle",
-  orientation: "horizontal" | "vertical" = "horizontal"
+  orientation: "horizontal" | "vertical" = "horizontal",
+  verticalBias: "middle" | "top" | "bottom" = "middle"
 ): string {
   if (lines.length === 0) {
     return "";
@@ -197,17 +263,31 @@ export function textLinesWithHaloToSvg(
   const widest = lines.reduce((m, l) => Math.max(m, estimateTextWidth(l, fontSize)), 0);
   const boxW = widest + 2 * padX;
   const boxH = lines.length * lineHeight + 2 * padY;
-  // Centered on (x, y) for the middle anchor (the only anchor rooms use).
-  const boxX = x - boxW / 2;
-  const boxY = y - boxH / 2;
+
+  // Resolve the text block's vertical center (ty) from the incoming anchor y
+  // and the vertical bias: "top" means y is the top edge (block sits below),
+  // "bottom" means y is the bottom edge (block sits above), "middle" centers.
+  let ty = y;
+  if (verticalBias === "top") ty = y + boxH / 2;
+  else if (verticalBias === "bottom") ty = y - boxH / 2;
+
+  // Horizontal box placement follows the text anchor so the halo hugs the same
+  // side the text grows from: start → box starts at x; end → box ends at x;
+  // middle → centered.
+  let boxX: number;
+  if (textAnchor === "start") boxX = x - padX;
+  else if (textAnchor === "end") boxX = x - boxW + padX;
+  else boxX = x - boxW / 2;
+  const boxY = ty - boxH / 2;
+
   const halo =
     `<rect x="${formatNumber(boxX)}" y="${formatNumber(boxY)}" ` +
     `width="${formatNumber(boxW)}" height="${formatNumber(boxH)}" ` +
     `fill="${haloColor}" fill-opacity="0.85" stroke="none" />`;
-  const body = halo + "\n" + textLinesToSvg(lines, x, y, fontSize, fill, textAnchor);
+  const body = halo + "\n" + textLinesToSvg(lines, x, ty, fontSize, fill, textAnchor);
   if (orientation === "vertical") {
     // -90° about the anchor: text reads bottom-to-top (counter-clockwise).
-    return `<g transform="rotate(-90, ${formatNumber(x)}, ${formatNumber(y)})">\n${body}\n</g>`;
+    return `<g transform="rotate(-90, ${formatNumber(x)}, ${formatNumber(ty)})">\n${body}\n</g>`;
   }
   return body;
 }

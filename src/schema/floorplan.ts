@@ -10,6 +10,7 @@ import {
   DimensionSchema,
   GridLineSchema,
   LabelOrientationSchema,
+  LabelPositionSchema,
 } from "./common.js";
 
 // ============================================================================
@@ -70,6 +71,7 @@ export const RoomSchema = z.object({
   roomType: RoomTypeSchema.optional(),
   label: z.string().optional(),
   labelOrientation: LabelOrientationSchema.optional(),
+  labelPosition: LabelPositionSchema.optional(),
   style: StyleSchema.optional(),
 });
 export type Room = z.infer<typeof RoomSchema>;
