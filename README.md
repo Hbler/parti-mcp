@@ -252,7 +252,7 @@ export async function handleRenderFloorPlan(input: {
 - `floors[]`: Array of floor specs, each with:
   - `outline`: Boundary polygon
   - `walls[]`: Wall centerlines with `thickness` and optional `material` (mixed materials on one floor render per group). Optional `heightClass`: `"full"` (default, solid cut poché) or `"low"` (half/pony/knee wall or railing below the cut plane → dashed outline, no fill). A wall may curve: give a two-point `path` plus `curve: { radius, clockwise }` and the server tessellates a circular arc that unions/cuts like a straight wall.
-  - `rooms[]`: Room polygons with type and optional custom fill (labels render on a legibility halo)
+  - `rooms[]`: Room polygons with type, optional custom fill, optional `label` (name; area is still appended) and `labelOrientation` (`horizontal` | `vertical`). Labels render on a legibility halo
   - `openings[]`: Doors/windows referencing a wall by `wallId` at `positionAlongWall` in [0,1]; doors need `hinge` (start|end) + `swingSide` (left|right)
   - `stairs[]`: Straight-run stairs — `footprint`, `run` [bottom, top] travel centerline, `treads` count, `direction` (up|down)
   - `ladders[]`: `path` [start, end] + `width` (rails + rungs)
@@ -275,13 +275,15 @@ export async function handleRenderSitePlan(input: {
 ```
 
 **Input Schema** (SiteSpec):
-- `buildings[]`: Building footprints with labels
+- `buildings[]`: Building footprints with `label` and optional `labelOrientation` (`horizontal` | `vertical`)
 - `roads[]`: Road polylines with width
-- `pavedAreas[]`: Paved polygons (driveways, parking, sidewalks)
-- `greenSpaces[]`: Landscape polygons (lawn, garden, trees)
-- `water[]`: Water features (pools, ponds)
+- `pavedAreas[]`: Paved polygons (driveways, parking, sidewalks, patios, decks). Optional `elevated: true` renders the area **above** water (for a deck/boardwalk/jetty over a pond or pool); optional `label` overrides the surface-derived name, `labelOrientation` rotates it
+- `greenSpaces[]`: Landscape polygons (lawn, garden, trees); optional `label`/`labelOrientation`
+- `water[]`: Water features (pools, ponds); optional `label`/`labelOrientation`
 - `barriers[]`: Fences, walls, hedges
 - `trees[]`: Individual tree positions with radius and species
+
+**Labels**: on area entities (buildings, rooms, paved areas, water, green spaces), `label` overrides the auto-derived name (a room still appends its computed area); `labelOrientation: "vertical"` rotates the label 90° (reading bottom-to-top) so it fits a narrow shape.
 
 ## Scale and Units
 
@@ -358,6 +360,7 @@ Hatches are defined as SVG `<pattern>` elements (`patternUnits="userSpaceOnUse"`
 - `hatch-masonry`: 45° diagonal lines, coarser than brick
 - `hatch-concrete`: Stipple/dot pattern
 - `hatch-insulation`: Batting pattern
+- `hatch-wood`: Parallel plank lines (backs the `wood` material and `deck` surface)
 - `hatch-lawn`: Scattered circles for grass
 - `hatch-pavers`: Grid pattern for paved areas
 - `hatch-earth`: Dense 45° lines for soil
